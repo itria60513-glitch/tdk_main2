@@ -34,8 +34,29 @@ namespace TDKController
         /// <summary>Base N2 Purge error.</summary>
         N2PurgeError = -200,
 
-        /// <summary>Base Carrier ID Reader error.</summary>
+        /// <summary>Base Carrier ID Reader error (-300).</summary>
         CarrierIdError = -300,
+
+        /// <summary>Reader is busy processing a previous command (-301).</summary>
+        CarrierIdBusy = -301,
+
+        /// <summary>Response timeout waiting for reader hardware (-302).</summary>
+        CarrierIdTimeout = -302,
+
+        /// <summary>Communication send/receive error (-303).</summary>
+        CarrierIdCommError = -303,
+
+        /// <summary>Barcode returned NG result on all retries (-304).</summary>
+        CarrierIdReadFailed = -304,
+
+        /// <summary>Response checksum validation failed — Hermes RFID (-305).</summary>
+        CarrierIdChecksumError = -305,
+
+        /// <summary>Input data exceeds the maximum allowed length (-306).</summary>
+        CarrierIdDataTooLong = -306,
+
+        /// <summary>Motor ON/OFF command failed — barcode reader (-307).</summary>
+        CarrierIdMotorError = -307,
 
         /// <summary>Base Light Curtain error.</summary>
         LightCurtainError = -400,
