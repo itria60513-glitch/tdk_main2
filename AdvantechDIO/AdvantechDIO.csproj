@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F1A2B3C4-D5E6-7890-ABCD-1234567890AB}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>AdvantechDIO</RootNamespace>
+    <AssemblyName>AdvantechDIO</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="Automation.BDaq4">
+      <HintPath>Lib\Automation.BDaq4.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Config\AdvantechDIOConfig.cs" />
+    <Compile Include="Module\AdvantechDIO.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DIO\DIO.csproj">
+      <Project>{2D4C4AB4-3732-456A-AD6D-3D3AB7BC5E39}</Project>
+      <Name>DIO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TDKLogUtility\TDKLogUtility.csproj">
+      <Project>{B69FDD41-DBE2-4B2C-808D-E218CF89EBDD}</Project>
+      <Name>TDKLogUtility</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Target Name="CopyAdvantechDioToManualTestGui" AfterTargets="Build">
+    <PropertyGroup>
+      <ManualTestGuiBinDir>$(MSBuildProjectDirectory)\..\AutoTest\AdvantechDIO.ManualTestGui\bin\$(Configuration)\</ManualTestGuiBinDir>
+    </PropertyGroup>
+
+    <MakeDir Directories="$(ManualTestGuiBinDir)" Condition="!Exists('$(ManualTestGuiBinDir)')" />
+
+    <Copy
+      SourceFiles="$(TargetPath)"
+      DestinationFiles="$(ManualTestGuiBinDir)$(TargetFileName)"
+      SkipUnchangedFiles="true" />
+
+    <Copy
+      SourceFiles="$(TargetDir)$(TargetName).pdb"
+      DestinationFiles="$(ManualTestGuiBinDir)$(TargetName).pdb"
+      SkipUnchangedFiles="true"
+      Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+  </Target>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

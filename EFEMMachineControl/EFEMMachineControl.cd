@@ -1,0 +1,225 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="EFEMMachineControl.ControllerFactory" Collapsed="true">
+    <Position X="0.5" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>EFEMControllerFactory.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EFEMMachineControl.IOBoardFactory" Collapsed="true">
+    <Position X="0.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAEAAAAAAAASAAAAAABABAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>IOBoard.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EFEMMachineControl.HMIDigitalIOBoard" Collapsed="true">
+    <Position X="13" Y="5.5" Width="2" />
+    <TypeIdentifier>
+      <HashCode>AUIAAAgAAAAAEQAAAAAAAIAAAAEAAAIAAABAACAQgAg=</HashCode>
+      <FileName>IOBoard.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EFEMMachineControl.KawasakiProduct" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="1.25" Y="5.25" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.AlignerCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.RobotCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.MoveMode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.CoordinateCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Class Name="EFEMMachineControl.KawasakiProduct.CommSyncEvnet" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EFEMMachineControl.KawasakiProduct.CMDAttribute" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Class Name="EFEMMachineControl.KawasakiProduct.strResponse" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.ExtendCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.CMDTarget" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.ModeCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Class Name="EFEMMachineControl.KawasakiProduct.CMDHelper" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.CMDPackageErrCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.HandCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.KawasakiControlType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Class Name="EFEMMachineControl.KawasakiProduct.CMDPackage" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Class>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.ChuckCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.CmdMontionType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.StationCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.DeviceCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.CMDAckType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.KaCMD" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="EFEMMachineControl.KawasakiProduct.JointCode" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>KawasakiProduct.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>A0OggCqJASEISUoQkEAMAAFEAAhEREIQCIZAIKFIogA=</HashCode>
+      <FileName>KawasakiProduct.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEMMachineControl.MachineControlImplement" Collapsed="true" BaseTypeListCollapsed="true">
+    <Position X="1.5" Y="1" Width="2.25" />
+    <TypeIdentifier>
+      <HashCode>AAKAAAARQCAMAUAAAEAMAABAAAAEAAIAABBAYAAAgAQ=</HashCode>
+      <FileName>MachineControlImplement.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" Collapsed="true" />
+  </Class>
+  <Class Name="EFEMMachineControl.VariableCenterSink" Collapsed="true">
+    <Position X="4.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEQAAAAAAAAAAAAAIAAAAAAAAAAAAAQAAAAAAAAAA=</HashCode>
+      <FileName>MachineControlImplement.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EFEMInterface.VirtualDigitalIOBoard" Collapsed="true">
+    <Position X="13" Y="4.5" Width="2" />
+    <Compartments>
+      <Compartment Name="Fields" Collapsed="true" />
+      <Compartment Name="Properties" Collapsed="true" />
+      <Compartment Name="Methods" Collapsed="true" />
+    </Compartments>
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEM.VariableCenter.AbstractVariableCenter_Sink" Collapsed="true">
+    <Position X="4.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier />
+  </Class>
+  <Class Name="EFEMInterface.CommunicationChannel.Rs232b" Collapsed="true">
+    <Position X="6.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEMInterface.CommunicationChannel.Tcpip" Collapsed="true">
+    <Position X="6.25" Y="2.75" Width="1.5" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEMInterface.CommunicationChannel.CommFormatKawasaki" Collapsed="true">
+    <Position X="3" Y="4.25" Width="2" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Interface Name="EFEMInterface.DigitalIOBoard" Collapsed="true">
+    <Position X="10.25" Y="4.25" Width="2" />
+    <TypeIdentifier />
+  </Interface>
+  <Interface Name="EFEMInterface.AbstractIOBoard&lt;T&gt;" Collapsed="true">
+    <Position X="8.25" Y="4.25" Width="1.5" />
+    <TypeIdentifier />
+  </Interface>
+  <Interface Name="EFEMInterface.IOBoardBase" Collapsed="true">
+    <Position X="6.25" Y="4.75" Width="1.5" />
+    <TypeIdentifier />
+  </Interface>
+  <Interface Name="EFEMInterface.AnalogIOBoard" Collapsed="true">
+    <Position X="10.25" Y="3" Width="2" />
+    <TypeIdentifier />
+  </Interface>
+  <Interface Name="EFEMInterface.AbstractHost" Collapsed="true">
+    <Position X="8.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier />
+  </Interface>
+  <Enum Name="EFEMInterface.HostType" Collapsed="true">
+    <Position X="10.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Enum Name="EFEMInterface.EFEMStatus" Collapsed="true">
+    <Position X="8.5" Y="1.5" Width="1.5" />
+    <TypeIdentifier />
+  </Enum>
+  <Delegate Name="EFEMInterface.EFEMStatusChanged" Collapsed="true">
+    <Position X="8.5" Y="2.5" Width="1.5" />
+    <TypeIdentifier />
+  </Delegate>
+  <Delegate Name="EFEMInterface.HostStatusChanged" Collapsed="true">
+    <Position X="10.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier />
+  </Delegate>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

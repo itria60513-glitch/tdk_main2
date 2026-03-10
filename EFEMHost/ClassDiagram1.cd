@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="EFEMHost.HostProxy" Collapsed="true">
+    <Position X="0.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AQKAQAARQCAMkUJCAkIMACZABACEEAIGIABBYAAIkAE=</HashCode>
+      <FileName>EFEMHost.cs</FileName>
+    </TypeIdentifier>
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEMHost.VariableCenterSink" Collapsed="true">
+    <Position X="3.5" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAEAAAAAAAAAAAAAAIAAAAAAAAAAAAAQAAABAAAAAA=</HashCode>
+      <FileName>EFEMHost.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="EFEMInterface.CommunicationChannel.CommFormatModbus" Collapsed="true">
+    <Position X="0.5" Y="0.5" Width="1.75" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Class Name="EFEMInterface.CommunicationChannel.CommFormatRorze" Collapsed="true">
+    <Position X="2.25" Y="3.5" Width="1.75" />
+    <TypeIdentifier />
+    <Lollipop Position="0.2" />
+  </Class>
+  <Interface Name="EFEMInterface.AbstractHost" Collapsed="true">
+    <Position X="0.75" Y="1.25" Width="1.5" />
+    <TypeIdentifier />
+  </Interface>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

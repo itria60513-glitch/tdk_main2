@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{25EAAA70-515F-49AA-959A-AA1DBD1BCA79}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EFEMImplement</RootNamespace>
+    <AssemblyName>EFEMImplement</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="MachineControlImplement.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DriverProxy\EFEMDriverProxy.csproj">
+      <Project>{64150214-7F52-4BAA-824E-E729A102469B}</Project>
+      <Name>EFEMDriverProxy</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMDataCenter\EFEMDataCenter.csproj">
+      <Project>{8F394E36-C16E-4BCF-BAE7-128AB15CF5B8}</Project>
+      <Name>EFEMDataCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMExceptionManagement\EFEMExceptionManagement.csproj">
+      <Project>{756CAFAD-9BF0-4892-B53B-4B275E6F0B6B}</Project>
+      <Name>EFEMExceptionManagement</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMInterface\EFEMInterface.csproj">
+      <Project>{25291777-877D-43A6-8165-26242817614D}</Project>
+      <Name>EFEMInterface</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMVarCenter\EFEMVarCenter.csproj">
+      <Project>{1F46A0BF-E6CD-473F-B1E6-CEE32A36F2B0}</Project>
+      <Name>EFEMVarCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LogUtility\EFEMLogUtility.csproj">
+      <Project>{90EFB1DD-5319-4EAA-80C7-9CDC733041AF}</Project>
+      <Name>EFEMLogUtility</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EFEMMachineControl.cd">
+      <SubType>Designer</SubType>
+    </None>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

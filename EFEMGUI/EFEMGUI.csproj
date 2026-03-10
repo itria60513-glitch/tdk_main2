@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3C5F7279-BADA-43FA-88B3-C02CAA7B72B0}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EFEMGUI</RootNamespace>
+    <AssemblyName>EFEMGUI</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <TargetFrameworkProfile>
+    </TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <PlatformTarget>x86</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>Ico\HMI_Small.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.WindowsAPICodePack">
+      <HintPath>..\ExLibrary\Microsoft.WindowsAPICodePack.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="EFEMForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EFEMForm.Designer.cs">
+      <DependentUpon>EFEMForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestDiLog.cs" />
+    <Compile Include="TestLogForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="TestLogForm.Designer.cs">
+      <DependentUpon>TestLogForm.cs</DependentUpon>
+    </Compile>
+    <EmbeddedResource Include="EFEMForm.resx">
+      <DependentUpon>EFEMForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
+    </Compile>
+    <EmbeddedResource Include="TestLogForm.resx">
+      <DependentUpon>TestLogForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <None Include="app.config" />
+    <None Include="packages.config" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EFEMControls\EFEMGUIControls.csproj">
+      <Project>{3B18C02B-C700-4378-BC12-61F83BB4D600}</Project>
+      <Name>EFEMGUIControls</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMDataCenter\EFEMDataCenter.csproj">
+      <Project>{8F394E36-C16E-4BCF-BAE7-128AB15CF5B8}</Project>
+      <Name>EFEMDataCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMExceptionManagement\EFEMExceptionManagement.csproj">
+      <Project>{756CAFAD-9BF0-4892-B53B-4B275E6F0B6B}</Project>
+      <Name>EFEMExceptionManagement</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMVarCenter\EFEMVarCenter.csproj">
+      <Project>{1F46A0BF-E6CD-473F-B1E6-CEE32A36F2B0}</Project>
+      <Name>EFEMVarCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LogUtility\EFEMLogUtility.csproj">
+      <Project>{90EFB1DD-5319-4EAA-80C7-9CDC733041AF}</Project>
+      <Name>EFEMLogUtility</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TDKLogUtility\TDKLogUtility.csproj">
+      <Project>{b69fdd41-dbe2-4b2c-808d-e218cf89ebdd}</Project>
+      <Name>TDKLogUtility</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Ico\HMI_Small.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

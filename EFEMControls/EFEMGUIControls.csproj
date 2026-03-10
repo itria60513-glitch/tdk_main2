@@ -1,0 +1,300 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="12.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3B18C02B-C700-4378-BC12-61F83BB4D600}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>EFEM.GUIControls</RootNamespace>
+    <AssemblyName>EFEMControls</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <Prefer32Bit>false</Prefer32Bit>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Microsoft.VisualBasic" />
+    <Reference Include="Microsoft.VisualBasic.PowerPacks.Vs, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Design" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AlarmHistoryFilterCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="AlarmHistoryFilterCtrl.designer.cs">
+      <DependentUpon>AlarmHistoryFilterCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EFEMAlarm.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EFEMAlarm.Designer.cs">
+      <DependentUpon>EFEMAlarm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GeneralControls\Models\ViewDefinition.cs" />
+    <Compile Include="TDKConfigControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="TDKConfigControl.Designer.cs">
+      <DependentUpon>TDKConfigControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EFEMConfigCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EFEMConfigCtrl.Designer.cs">
+      <DependentUpon>EFEMConfigCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GeneralControls\TreeView.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="GeneralControls\TreeView.Designer.cs">
+      <DependentUpon>TreeView.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GeneralControls\SplitButton.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="GeneralControls\ToolStripStatusCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="GeneralControls\ToolStripStatusCtrl.designer.cs">
+      <DependentUpon>ToolStripStatusCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="InitStatusErrorListForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="InitStatusErrorListForm.Designer.cs">
+      <DependentUpon>InitStatusErrorListForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="EFEMStatusCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EFEMStatusCtrl.Designer.cs">
+      <DependentUpon>EFEMStatusCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="IPv4Ctrl.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="LogControls\LogClientSetting.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="LogControls\LogClientSetting.Designer.cs">
+      <DependentUpon>LogClientSetting.cs</DependentUpon>
+    </Compile>
+    <Compile Include="LogControls\LogConfigCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="LogControls\LogConfigCtrl.Designer.cs">
+      <DependentUpon>LogConfigCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Login\LoginForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Login\SlideDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EFEMMainControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="EFEMMainControl.Designer.cs">
+      <DependentUpon>EFEMMainControl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="GUIBasic.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="RobotAlarmFormCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="RobotAlarmFormCtrl.Designer.cs">
+      <DependentUpon>RobotAlarmFormCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="StartupComponentCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="StartupComponentCtrl.Designer.cs">
+      <DependentUpon>StartupComponentCtrl.cs</DependentUpon>
+    </Compile>
+    <Compile Include="StatusMessageCtrl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="StatusMessageCtrl.Designer.cs">
+      <DependentUpon>StatusMessageCtrl.cs</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="AlarmHistoryFilterCtrl.resx">
+      <DependentUpon>AlarmHistoryFilterCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EFEMAlarm.resx">
+      <DependentUpon>EFEMAlarm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="TDKConfigControl.resx">
+      <DependentUpon>TDKConfigControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EFEMConfigCtrl.resx">
+      <DependentUpon>EFEMConfigCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="GeneralControls\ToolStripStatusCtrl.resx">
+      <DependentUpon>ToolStripStatusCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="GeneralControls\TreeView.resx">
+      <DependentUpon>TreeView.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="InitStatusErrorListForm.resx">
+      <DependentUpon>InitStatusErrorListForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EFEMStatusCtrl.resx">
+      <DependentUpon>EFEMStatusCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LogControls\LogClientSetting.resx">
+      <DependentUpon>LogClientSetting.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="LogControls\LogConfigCtrl.resx">
+      <DependentUpon>LogConfigCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Login\LoginForm.resx">
+      <DependentUpon>LoginForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Login\SlideDialog.resx">
+      <DependentUpon>SlideDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="EFEMMainControl.resx">
+      <DependentUpon>EFEMMainControl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="RobotAlarmFormCtrl.resx">
+      <DependentUpon>RobotAlarmFormCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StartupComponentCtrl.resx">
+      <DependentUpon>StartupComponentCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="StatusMessageCtrl.resx">
+      <DependentUpon>StatusMessageCtrl.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Communication\Communication.csproj">
+      <Project>{279a0bcc-2ee7-43d6-858f-4a800e995951}</Project>
+      <Name>Communication</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\DIO\DIO.csproj">
+      <Project>{8efc1d03-a9d7-427a-b1e9-b4fd3ccc77bd}</Project>
+      <Name>DIO</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMDataCenter\EFEMDataCenter.csproj">
+      <Project>{8F394E36-C16E-4BCF-BAE7-128AB15CF5B8}</Project>
+      <Name>EFEMDataCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMExceptionManagement\EFEMExceptionManagement.csproj">
+      <Project>{756CAFAD-9BF0-4892-B53B-4B275E6F0B6B}</Project>
+      <Name>EFEMExceptionManagement</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\EFEMVarCenter\EFEMVarCenter.csproj">
+      <Project>{1F46A0BF-E6CD-473F-B1E6-CEE32A36F2B0}</Project>
+      <Name>EFEMVarCenter</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\LogUtility\EFEMLogUtility.csproj">
+      <Project>{90EFB1DD-5319-4EAA-80C7-9CDC733041AF}</Project>
+      <Name>EFEMLogUtility</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TDKController\TDKController.csproj">
+      <Project>{62337363-63b5-4dfe-84d9-c5348b3cfd8d}</Project>
+      <Name>TDKController</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\TDKLogUtility\TDKLogUtility.csproj">
+      <Project>{b69fdd41-dbe2-4b2c-808d-e218cf89ebdd}</Project>
+      <Name>TDKLogUtility</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\HMI.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\ZMoveUp.png" />
+    <None Include="Resources\ZMoveDown.png" />
+    <None Include="Resources\Trashcan.png" />
+    <None Include="Resources\A1POS.png" />
+    <None Include="Resources\AlignAngle.png" />
+    <None Include="Resources\A1POS_New.png" />
+    <Content Include="Resources\Aligner.png" />
+    <Content Include="Resources\Aligner_Map.png" />
+    <None Include="Resources\apply.png" />
+    <Content Include="Resources\ApproachAngle.png" />
+    <Content Include="Resources\dualmde_Z.png" />
+    <None Include="Resources\filter.png" />
+    <None Include="Resources\filter_disable.png" />
+    <None Include="Resources\EMGSTOP.png" />
+    <None Include="Resources\EMGSTOP_On.png" />
+    <Content Include="Resources\Gets motion.png" />
+    <Content Include="Resources\H1.png" />
+    <Content Include="Resources\H2.png" />
+    <Content Include="Resources\home.png" />
+    <Content Include="Resources\information.png" />
+    <Content Include="Resources\J2.png" />
+    <Content Include="Resources\J4.png" />
+    <None Include="Resources\refresh.png" />
+    <None Include="Resources\Lock.png" />
+    <None Include="Resources\MoveDown.png" />
+    <None Include="Resources\MoveLeft.png" />
+    <None Include="Resources\MoveRight.png" />
+    <None Include="Resources\MoveUP.png" />
+    <None Include="Resources\Memo.png" />
+    <None Include="Resources\MniCtrlSmall.png" />
+    <Content Include="Resources\RobotMap.png" />
+    <Content Include="Resources\LL.png" />
+    <Content Include="Resources\LP.png" />
+    <Content Include="Resources\minus.png" />
+    <Content Include="Resources\mm_X.png" />
+    <Content Include="Resources\mm_Y.png" />
+    <Content Include="Resources\plus.png" />
+    <Content Include="Resources\Puts motion.png" />
+    <Content Include="Resources\Robot.png" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

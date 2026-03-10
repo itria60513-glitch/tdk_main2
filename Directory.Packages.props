@@ -1,0 +1,111 @@
+<Project> 
+  <PropertyGroup>
+    <!--Enable Central nupkg version management-->
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+	<!--Pins transitive package versions to those defined in the central management file when Central Package Management is enabled.-->
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+	<!-- EDIClient --> 
+    <PackageVersion Include="Asml.Ebeam.ADELFileParserTool" Version="2.0.0"  />
+    <PackageVersion Include="Asml.Ebeam.FileTools" Version="1.2.5"  />
+	
+	<!-- ADC -->
+	<PackageVersion Include="SharpZipLib" Version="1.4.2"  />
+	<PackageVersion Include="ILMerge" Version="3.0.41"  />
+	
+	<!-- AdvancedIsolatedControl -->
+	<PackageVersion Include="Asml.Ebeam.Aic.Resource" Version="1.6.0" />
+	
+	<!-- SimulationPlatform -->
+	<PackageVersion Include="xsd.exe" Version="4.7.2.1"  />
+	<PackageVersion Include="Asml.Ebeam.SimulationPlatform.Resource" Version="1.1.1" />
+	<PackageVersion Include="Asml.Ebeam.SimulationPlatform.Gds.Hld" Version="1.0.1" />
+	<PackageVersion Include="Asml.Ebeam.LicenseBase" Version="1.1.0-adev-20221122-074730-ed33aa2cac" />
+	<PackageVersion Include="Asml.Ebeam.LicenseRegenerator" Version="1.0.2-adev-20230517-051609-31a26e49df" />
+	<PackageVersion Include="Asml.Ebeam.Simulationplatform.Test.Ref.Images" Version="1.0.0" />
+	
+	<!-- MicroService nupkg-->
+	<PackageVersion Include="Asml.Ebeam.PathPlanningLibWin" Version="2.0.1" />
+	<PackageVersion Include="Asml.Ebeam.PathPlanningLibX10" Version="2.0.1" />
+	<PackageVersion Include="Asml.Ebeam.PathPlanningLibX11" Version="2.0.1" />
+	<PackageVersion Include="Asml.Ebeam.MicroServices.Resource" Version="1.0.0" />
+	<PackageVersion Include="Asml.Ebeam.PathPlanning.Resource" Version="1.1.0" />
+	<PackageVersion Include="Asml.Ebeam.RecipeFacilities" Version="1.4.1" />
+	
+	<!-- MicroServices dll -->
+	<PackageVersion Include="Asml.Ebeam.MicroServices.Interface" Version="2.0.1" /> 
+	
+	<!-- Firewall Daemon -->
+	<PackageVersion Include="Asml.Mbi.Facilities" Version="21.0.1" />
+	<PackageVersion Include="Asml.Ebeam.FirewallDaemon.gRpc" Version="2.0.0" />
+	
+	<!-- CalibrationUtility -->
+	<PackageVersion Include="Asml.Ebeam.EasyMathUtility" Version="1.0.0-adev-00012-20251210-063824" />
+	<PackageVersion Include="Asml.Ebeam.EasyVision" Version="2.0.1-adev-00011-20251210-063824" />
+	
+	<!-- Geometry -->
+	<PackageVersion Include="Asml.Ebeam.GWDaemon.Icon" Version="1.0.0" />
+	
+	<!-- Microsoft -->
+	<PackageVersion Include="System.Buffers" Version="4.6.1" />
+	<PackageVersion Include="System.Memory" Version="4.6.2" />
+	<PackageVersion Include="System.IO.Pipelines" Version="9.0.3" />
+	<PackageVersion Include="System.IO.Ports" Version="5.0.0" />	
+	<PackageVersion Include="system.data.datasetextensions" Version="4.5.0" />
+	<PackageVersion Include="System.ServiceModel.Primitives" Version="8.1.1" />
+	<PackageVersion Include="System.ComponentModel.Annotations" Version="4.6.0" />
+	<PackageVersion Include="System.Management" Version="8.0.0" />
+	<PackageVersion Include="System.Reactive" Version="5.0.0" />
+	<PackageVersion Include="System.Threading.Tasks.Extensions" Version="4.6.2" />
+	<PackageVersion Include="System.Runtime.CompilerServices.Unsafe" Version="6.1.1" />
+	<PackageVersion Include="System.ValueTuple" Version="4.6.1" />
+	<PackageVersion Include="System.Text.Encoding.CodePages" Version="5.0.0" />
+	<PackageVersion Include="System.Diagnostics.DiagnosticSource" Version="9.0.3" />
+	<PackageVersion Include="System.Drawing.Common" Version="8.0.0" />
+	<PackageVersion Include="Microsoft.IO.RecyclableMemoryStream" Version="2.2.0" />	
+	<PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.3" />	
+	<PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Scripting" Version="4.1.0" />
+	<PackageVersion Include="Microsoft.CSharp" Version="4.7.0" />	
+	<PackageVersion Include="Microsoft.Redistributable" Version="1.0.2" />
+	<PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.3" />
+	<PackageVersion Include="Microsoft.Bcl.HashCode" Version="1.1.1" />
+	<PackageVersion Include="microsoft.win32.systemevents" Version="8.0.0" />
+	
+	
+	  <!-- gRPC uses Protocol Buffers -->
+	<PackageVersion Include="Google.Protobuf" Version="3.25.2" />
+	<PackageVersion Include="Grpc" Version="2.46.6" />
+	<PackageVersion Include="Grpc.Core" Version="2.46.6" />
+	<PackageVersion Include="Grpc.Core.Api" Version="2.60.0" />
+	<PackageVersion Include="Grpc.Tools" Version="2.60.0" />
+	<PackageVersion Include="Grpc.Net.Client" Version="2.60.0" />
+	<PackageVersion Include="Grpc.Net.Common" Version="2.60.0" />
+	
+	<!-- Unit Tests -->
+	<PackageVersion Include="Moq" Version="4.17.2" />
+	<PackageVersion Include="NUnit" Version="3.13.3" />
+	<PackageVersion Include="NUnit3TestAdapter" Version="4.5.0" />
+	<PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+
+	
+	<!-- Third party -->
+	<PackageVersion Include="Antlr4" Version="4.6.6" />
+	<PackageVersion Include="Antlr4.CodeGenerator" Version="4.6.6" />
+	<PackageVersion Include="Antlr4.Runtime" Version="4.6.6" />
+	<PackageVersion Include="Accord" Version="3.8.0" />
+	<PackageVersion Include="Accord.Math" Version="3.8.0" />
+	<PackageVersion Include="Autofac" Version="7.1.0" />
+	<PackageVersion Include="NLog" Version="4.7.7.2" />
+	<PackageVersion Include="NCalcSync" Version="3.6.0" />
+	<PackageVersion Include="NetMQ" Version="4.0.1.13" />
+	<PackageVersion Include="WinSCP" Version="5.21.1" />
+	<PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
+	<PackageVersion Include="Castle.Core" Version="5.1.1" />
+	<PackageVersion Include="Castle.Core.AsyncInterceptor" Version="2.1.0" />
+	<PackageVersion Include="CsvHelper" Version="30.0.1" />
+	<PackageVersion Include="MathNet.Numerics" Version="4.5.1" />
+	<PackageVersion Include="Vsxmd" Version="1.3.3" />
+	<PackageVersion Include="RTools.Util" Version="1.0.2" />	
+  </ItemGroup>
+</Project>
