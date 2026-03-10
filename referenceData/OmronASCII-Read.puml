@@ -1,0 +1,16 @@
+@startuml
+actor Caller
+participant CarrierIDReader
+participant OmronASCII
+participant CommChannel
+
+Caller -> CarrierIDReader: GetCarrierID()
+CarrierIDReader -> OmronASCII: GetCarrierID(out carrierID)
+OmronASCII -> CommChannel: Send("OMRON:ReadRFID:ASCII")
+alt ReadRFID failed
+  OmronASCII --> CarrierIDReader: error
+else success
+  OmronASCII -> OmronASCII: ParseCarrierIDReaderData()
+  OmronASCII --> CarrierIDReader: carrierID
+end
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface ICarrierIDReader
+class BarcodeReader {
+  +CarrierIDReaderConfigPath: string
+  +carrierIDReaderType: CarrierIDReaderType
+  +ParseCarrierIDReaderData(command: string): int
+  +GetCarrierID(out carrierID: string): int
+  +SetCarrierID(carrierID: string): int
+  -ReadBarcodeFlow(out barcode: string, out errCode: int): int
+  -PadBarcode(value: string): string
+}
+class CommChannel
+class AbstractLogUtility
+
+BarcodeReader ..|> ICarrierIDReader
+BarcodeReader --> CommChannel
+BarcodeReader --> AbstractLogUtility
+@enduml

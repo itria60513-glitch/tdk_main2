@@ -1,0 +1,16 @@
+@startuml OmronHexRead
+actor Caller
+participant CarrierIDReader
+participant OmronHex
+participant CommChannel
+
+Caller -> CarrierIDReader: GetCarrierID()
+CarrierIDReader -> OmronHex: GetCarrierID(out carrierID)
+OmronHex -> CommChannel: Send("OMRON:ReadRFID:HEX")
+alt ReadRFID failed
+  OmronHex --> CarrierIDReader: error
+else success
+  OmronHex -> OmronHex: ParseCarrierIDReaderData()
+  OmronHex --> CarrierIDReader: carrierID
+end
+@enduml

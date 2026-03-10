@@ -1,0 +1,59 @@
+@startuml CarrierIDReader
+skinparam classAttributeIconSize 0
+
+class CarrierIDReader
+interface ICarrierIDReader
+
+class IDReaderBarcodeReader
+class IDReaderOmronASCII
+class IDReaderOmronHex
+class IDReaderHermesRFID
+
+' =========================
+' Interface: ICarrierIDReader
+' =========================
+interface ICarrierIDReader{
+    + CarrierIDReaderConfigPath: <color:blue>string
+    + carrierIDReaderType: <color:blue>CarrierIDReaderType
+    + ParseCarrierIDReaderData(command: <color:blue>string): <color:blue>int
+    + GetCarrierID(out carrierID: <color:blue>string): <color:blue>int
+    + SetCarrierID(carrierID: <color:blue>string): <color:blue>int
+}
+
+' =========================
+' Class: CarrierIDReader
+' =========================
+class CarrierIDReader {
+    + CarrierIDReader(connector: IConnector, logger: ILogUtility)
+}
+
+' =========================
+' Sub-classes methods 
+' =========================
+
+class IDReaderBarcodeReader {
+    + MotorON(): int
+    + ReadBarCode(out barcode: string): int
+    + MotorOFF(): int
+}
+
+class IDReaderOmronASCII {
+}
+
+class IDReaderOmronHex {
+}
+
+class IDReaderHermesRFID {
+}
+
+' =========================
+' Inheritance / Realization
+' =========================
+CarrierIDReader ..|> ICarrierIDReader
+
+IDReaderBarcodeReader --|> CarrierIDReader
+IDReaderOmronASCII --|> CarrierIDReader
+IDReaderOmronHex --|> CarrierIDReader
+IDReaderHermesRFID --|> CarrierIDReader
+
+@enduml

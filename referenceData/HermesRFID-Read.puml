@@ -1,0 +1,16 @@
+@startuml
+actor Caller
+participant CarrierIDReader
+participant HermesRFID
+participant CommChannel
+
+Caller -> CarrierIDReader: GetCarrierID()
+CarrierIDReader -> HermesRFID: GetCarrierID(out carrierID)
+HermesRFID -> CommChannel: Send("HERMOS:ReadRFID")
+alt ReadRFID failed
+  HermesRFID --> CarrierIDReader: error
+else success
+  HermesRFID -> HermesRFID: ParseCarrierIDReaderData()
+  HermesRFID --> CarrierIDReader: carrierID
+end
+@enduml

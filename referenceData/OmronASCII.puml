@@ -1,0 +1,19 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+interface ICarrierIDReader
+class OmronASCII {
+  +CarrierIDReaderConfigPath: string
+  +carrierIDReaderType: CarrierIDReaderType
+  +ParseCarrierIDReaderData(command: string): int
+  +GetCarrierID(out carrierID: string): int
+  +SetCarrierID(carrierID: string): int
+  -ReadOmronFlow(out content: string, out errCode: int): int
+}
+class CommChannel
+class AbstractLogUtility
+
+OmronASCII ..|> ICarrierIDReader
+OmronASCII --> CommChannel
+OmronASCII --> AbstractLogUtility
+@enduml

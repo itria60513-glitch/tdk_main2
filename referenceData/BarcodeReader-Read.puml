@@ -1,0 +1,33 @@
+@startuml
+actor Caller
+participant CarrierIDReader
+participant BarcodeReader
+participant CommChannel
+
+Caller -> CarrierIDReader: GetCarrierID()
+CarrierIDReader -> BarcodeReader: GetCarrierID(out carrierID)
+BarcodeReader -> CommChannel: Send("BL600:MotorON")
+alt MotorON fail
+  BarcodeReader --> CarrierIDReader: error
+else MotorON ok
+  loop up to 8 retries
+    BarcodeReader -> CommChannel: Send("BL600:ReadBarCode")
+    alt timeout/error
+      note right: ReadBarCode timeout
+    else barcode received
+      BarcodeReader -> BarcodeReader: ParseCarrierIDReaderData()
+      break
+    end
+  end
+  alt read not finished
+    BarcodeReader -> CommChannel: Send("BL600:MotorOFF")
+    BarcodeReader --> CarrierIDReader: error
+  else NG/ERROR
+    BarcodeReader -> CommChannel: Send("BL600:MotorOFF")
+    BarcodeReader --> CarrierIDReader: error
+  else success
+    BarcodeReader -> CommChannel: Send("BL600:MotorOFF")
+    BarcodeReader --> CarrierIDReader: carrierID
+  end
+end
+@enduml
