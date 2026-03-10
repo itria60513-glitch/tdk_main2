@@ -109,7 +109,7 @@ EFEM 控制器根據組態設定（讀取器類型）建立對應的 `CarrierIDR
 - **FR-007**: 兩個 Omron 子類別**必須**支援透過 `SetCarrierID()` 進行寫入操作，以 16 字元資料酬載建構 29 位元組寫入命令框架。
 - **FR-008**: `IDReaderHermesRFID.GetCarrierID()` **必須**發送具有正確框架（起始位元組、長度、命令、位址、校驗碼）的 Hermes 讀取命令、等待確認，並解析確認成功的回應資料。
 - **FR-009**: `IDReaderHermesRFID.SetCarrierID()` **必須**發送具有正確框架及 16 字元資料酬載的 Hermes 寫入命令，收到確認成功回應後回傳成功。
-- **FR-010**: 所有讀取器子類別**必須**回傳遵循一致慣例的整數錯誤碼：0 = 成功，非零值表示特定錯誤條件（如忙碌、逾時、通訊錯誤、資料過長）。
+- **FR-010**: 所有讀取器子類別**必須**回傳 `ErrorCode` 列舉值，遵循 TDKController 統一慣例：`ErrorCode.Success`（0）表示成功；CarrierID 範圍負值（-300 至 -399）表示特定失敗條件（`CarrierIdBusy`、`CarrierIdTimeout`、`CarrierIdCommError`、`CarrierIdReadFailed`、`CarrierIdChecksumError`、`CarrierIdDataTooLong`、`CarrierIdMotorError`）。回傳資料的查詢方法（`GetCarrierID`、`ParseCarrierIDReaderData`）**必須**使用 `out string` 參數傳遞結果，遵循 `ILoadPortActor.GetLPStatus(out string data)` 建立的模式。
 - **FR-011**: 所有讀取器子類別**必須**使用透過 `CarrierIDReader` 基底類別建構函式提供的通訊通道（connector）來發送與接收資料。
 - **FR-012**: 所有讀取器子類別**必須**使用透過 `CarrierIDReader` 基底類別建構函式提供的日誌工具來記錄重要操作（已發送的命令、收到的回應、遇到的錯誤）。
 - **FR-013**: 所有讀取器子類別在忙碌時（前一個命令仍在等待回應）**必須**拒絕操作，回傳「忙碌」錯誤碼。
@@ -119,13 +119,13 @@ EFEM 控制器根據組態設定（讀取器類型）建立對應的 `CarrierIDR
 
 ### 關鍵實體
 
-- **ICarrierIDReader**: 定義所有 Carrier ID 讀取器類型契約的介面。屬性：`CarrierIDReaderConfigPath`（組態檔路徑）、`carrierIDReaderType`（識別讀取器硬體類型的列舉）。方法：`GetCarrierID()`、`SetCarrierID()`、`ParseCarrierIDReaderData()`。
+- **ICarrierIDReader**: 定義所有 Carrier ID 讀取器類型契約的介面。屬性：`CarrierIDReaderConfigPath`（組態檔路徑）、`carrierIDReaderType`（識別讀取器硬體類型的列舉）。方法簽章：`ErrorCode GetCarrierID(out string carrierId)`、`ErrorCode SetCarrierID(string carrierId, int page)`、`ErrorCode ParseCarrierIDReaderData(byte[] rawData, out string carrierId)`（回傳型別均為 `ErrorCode`；有資料輸出的方法使用 `out string` 參數，與 `ILoadPortActor.GetLPStatus(out string data)` 模式一致）。
 - **CarrierIDReader**: 提供共用建構邏輯的基底類別（接受 connector/通訊通道與 logger）。所有子類別繼承自此。
 - **IDReaderBarcodeReader**: BL600 系列條碼讀取器的子類別。額外方法：`MotorON()`、`ReadBarCode()`、`MotorOFF()`。使用「掃描 + 重試」讀取流程。
 - **IDReaderOmronASCII**: ASCII 內容格式 Omron RFID 讀取器的子類別。使用頁面式位元遮罩命令框架，每次操作讀取兩個相鄰頁面。
 - **IDReaderOmronHex**: HEX 內容格式 Omron RFID 讀取器的子類別。使用頁面式位元遮罩命令框架，每次操作讀取單一頁面。
 - **IDReaderHermesRFID**: Hermes 協定 RFID 讀取器的子類別。使用帶有起始位元組、長度、命令碼、位址、XOR/加法校驗碼的框架命令，並處理確認回應。
-- **CarrierIDReaderType**: 識別讀取器硬體類型的列舉（如 BarcodeReader、OmronASCII、OmronHex、HermesRFID）。
+- **CarrierIDReaderType**: 識別讀取器硬體類型的列舉，定義於 `TDKController.Interface`。成員：`BarcodeReader = 1`、`HermesRFID = 2`、`OmronASCII = 3`、`OmronHex = 4`。
 
 ## 假設
 
