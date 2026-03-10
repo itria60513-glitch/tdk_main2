@@ -85,23 +85,33 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - **FR-003**: The system MUST execute the protocol-specific read sequence required by the configured reader type before returning a carrier identifier.
 - **FR-004**: The system MUST return a success result only when the configured reader type completes its read sequence and produces a valid carrier identifier.
 - **FR-005**: The system MUST report a failure result when a device does not respond, returns unreadable data, returns invalid data, or rejects the requested operation.
-- **FR-006**: The barcode reader workflow MUST retry read attempts when the device reports an unreadable result, up to the device behavior defined by the existing reference flow, and MUST stop retrying once a valid identifier is read or the retry limit is reached.
-- **FR-007**: The barcode reader workflow MUST leave the reader in a safe end state after each request, regardless of whether the request succeeds or fails.
+- **FR-006**: The barcode reader workflow MUST retry read attempts up to a maximum of 3 times when the device reports an unreadable result, and MUST stop retrying once a valid identifier is read or the retry limit is reached.
+- **FR-007**: The barcode reader workflow MUST leave the reader in a safe end state after each request, regardless of whether the request succeeds or fails. The safe end state is defined as: trigger off (stop scanning) and disconnect the communication session.
 - **FR-008**: The Omron ASCII RFID workflow MUST read carrier data using the ASCII-oriented device behavior defined by the reference flow.
 - **FR-009**: The Omron HEX RFID workflow MUST read carrier data using the HEX-oriented device behavior defined by the reference flow.
 - **FR-010**: The Hermes RFID workflow MUST validate response integrity before accepting returned carrier data.
-- **FR-011**: The system MUST support writing carrier data to reader types whose reference behavior includes write support.
+- **FR-011**: The system MUST support writing carrier data to Omron ASCII RFID, Omron HEX RFID, and Hermes RFID reader types. The barcode reader is read-only and does not require write support.
 - **FR-012**: The system MUST reject reader operations that are submitted while a previous operation for the same device is still in progress.
-- **FR-013**: The system MUST enforce finite response time limits for device operations and return a timeout failure when those limits are exceeded.
+- **FR-013**: The system MUST enforce a default 10-second response time limit for device operations and return a timeout failure when that limit is exceeded.
 - **FR-014**: The system MUST record sufficient operational diagnostics for successful operations and failures so that device communication problems can be investigated.
-- **FR-015**: The system MUST parse device responses into a caller-usable carrier identifier format before returning the result.
+- **FR-015**: The system MUST parse device responses into an ASCII string carrier identifier before returning the result. For readers that return HEX-encoded data (e.g., Omron HEX), the reader implementation MUST convert the raw bytes to their ASCII string representation internally.
 
 ### Key Entities *(include if feature involves data)*
 
 - **Carrier Identifier Request**: A request to read or write carrier identity information using the configured reader type.
-- **Carrier Identifier Result**: The outcome of a reader request, including success or failure status, the resolved carrier identifier when available, and the failure reason when unsuccessful.
+- **Carrier Identifier Result**: The outcome of a reader request, including success or failure status, the resolved carrier identifier as an ASCII string when available, and the failure reason when unsuccessful.
 - **Reader Configuration**: The configured device type and communication settings that determine which protocol flow the controller uses.
 - **Reader Operation State**: The current execution state for a device request, including idle, in progress, completed, timed out, or failed.
+
+## Clarifications
+
+### Session 2026-03-10
+
+- Q: 設備操作的預設逾時值應為多少？ → A: 10 秒 (保守值，容許較慢的 RFID 裝置)
+- Q: 哪些讀取器類型需要支援寫入操作？ → A: Omron ASCII、Omron HEX、Hermes RFID（全部 RFID 類型）
+- Q: Barcode reader 讀取失敗時的最大重試次數應為多少？ → A: 3 次
+- Q: 載體 ID 返回給呼叫者時應統一為何種格式？ → A: ASCII 字串 (string)，HEX 資料在讀取器內部轉為 ASCII 表示
+- Q: Barcode reader 的「安全結束狀態」具體指什麼？ → A: 關閉觸發 (trigger off) 並斷開連線
 
 ## Assumptions
 
