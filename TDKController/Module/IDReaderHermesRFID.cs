@@ -26,28 +26,50 @@ namespace TDKController
             try
             {
                 string normalized = TrimResponse(command);
-                if (string.IsNullOrEmpty(normalized) || normalized.Length < 8 || normalized[0] != 'S')
+                if (string.IsNullOrEmpty(normalized) || normalized.Length < 10 || normalized[0] != 'S')
                 {
                     return ErrorCode.CarrierIdCommandFailed;
                 }
 
                 int messageLength = Convert.ToInt32(normalized.Substring(1, 2), 16);
-                if (normalized.Length < messageLength + 8)
+                int frameLength = messageLength + 8;
+                if (normalized.Length != frameLength)
                 {
                     return ErrorCode.CarrierIdCommandFailed;
                 }
 
-                int checksumStart = 3 + messageLength + 1;
+                int endIndex = frameLength - 5;
+                if (normalized[endIndex] != '\r')
+                {
+                    return ErrorCode.CarrierIdCommandFailed;
+                }
+
                 string message = normalized.Substring(3, messageLength);
-                string checksum = normalized.Substring(checksumStart, 4);
-                string expected = ComputeChecksums(normalized.Substring(0, checksumStart));
+                string checksum = normalized.Substring(frameLength - 4, 4);
+                string expected = ComputeChecksums(normalized.Substring(0, frameLength - 4));
 
                 if (!string.Equals(checksum, expected, StringComparison.OrdinalIgnoreCase))
                 {
                     return ErrorCode.CarrierIdChecksumError;
                 }
 
+                if (message.Length < 2)
+                {
+                    return ErrorCode.CarrierIdCommandFailed;
+                }
+
                 char responseType = message[0];
+                char address = message[1];
+                if (address != '0')
+                {
+                    return ErrorCode.CarrierIdCommandFailed;
+                }
+
+                if (responseType == 'e')
+                {
+                    return ErrorCode.CarrierIdCommandFailed;
+                }
+
                 return responseType == 'x' || responseType == 'w' || responseType == 'v'
                     ? ErrorCode.Success
                     : ErrorCode.CarrierIdCommandFailed;
@@ -98,8 +120,7 @@ namespace TDKController
                         return result;
                     }
 
-                    string message = ExtractMessage(response);
-                    carrierID = message.Length > 1 ? message.Substring(1) : string.Empty;
+                    carrierID = ExtractReadPayload(response);
                     return string.IsNullOrEmpty(carrierID) ? ErrorCode.CarrierIdCommandFailed : ErrorCode.Success;
                 }
                 finally
@@ -187,11 +208,18 @@ namespace TDKController
             return frameWithoutChecksums + ComputeChecksums(frameWithoutChecksums);
         }
 
-        private string ExtractMessage(string response)
+        private string ExtractReadPayload(string response)
         {
             string normalized = TrimResponse(response);
             int length = Convert.ToInt32(normalized.Substring(1, 2), 16);
-            return normalized.Substring(3, length);
+            string message = normalized.Substring(3, length);
+            if (message.Length < 4 || message[0] != 'x' || message[1] != '0')
+            {
+                return string.Empty;
+            }
+
+            string info = message.Substring(2);
+            return info.Length > 2 ? info.Substring(2) : string.Empty;
         }
 
         private static string ComputeChecksums(string value)

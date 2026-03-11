@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using Communication.Interface;
 using TDKLogUtility.Module;
 
@@ -156,8 +155,78 @@ namespace TDKController
 
         protected string BuildPageMask(int page)
         {
-            long mask = 1L << (page - 1);
-            return mask.ToString("X8");
+            char[] frame = new[] { '0', '0', '0', '0', '0', '0', '0', '0' };
+            bool isAscii = CarrierIDReaderType == CarrierIDReaderType.OmronASCII;
+            int offset;
+
+            switch (page)
+            {
+                case 1:
+                    frame[7] = isAscii ? 'C' : '4';
+                    break;
+                case 2:
+                    frame[6] = isAscii ? '1' : '0';
+                    frame[7] = '8';
+                    break;
+                case 3:
+                case 7:
+                case 11:
+                case 15:
+                case 19:
+                case 23:
+                case 27:
+                    offset = page / 4;
+                    frame[6 - offset] = isAscii ? '3' : '1';
+                    break;
+                case 4:
+                case 8:
+                case 12:
+                case 16:
+                case 20:
+                case 24:
+                case 28:
+                    offset = (page - 1) / 4;
+                    frame[6 - offset] = isAscii ? '6' : '2';
+                    break;
+                case 5:
+                case 9:
+                case 13:
+                case 17:
+                case 21:
+                case 25:
+                case 29:
+                    offset = (page - 2) / 4;
+                    frame[6 - offset] = isAscii ? 'C' : '4';
+                    break;
+                case 6:
+                case 10:
+                case 14:
+                case 18:
+                case 22:
+                case 26:
+                case 30:
+                    offset = (page - 3) / 4;
+                    if (isAscii)
+                    {
+                        if (page < 30)
+                        {
+                            frame[5 - offset] = '1';
+                        }
+
+                        frame[6 - offset] = '8';
+                    }
+                    else
+                    {
+                        frame[6 - offset] = '8';
+                    }
+
+                    break;
+                default:
+                    frame[7] = isAscii ? 'C' : '4';
+                    break;
+            }
+
+            return new string(frame);
         }
 
         protected ErrorCode ValidatePage(int maxPage)

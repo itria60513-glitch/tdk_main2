@@ -32,7 +32,7 @@ namespace TDKController
 
         protected readonly ManualResetEventSlim _responseSignal = new ManualResetEventSlim(false);
 
-        protected string LastResponse { get; private set; }
+        protected string LastResponse { get; set; }
 
         public string CarrierIDReaderConfigPath { get; set; }
 
