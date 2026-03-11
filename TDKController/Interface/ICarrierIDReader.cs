@@ -6,11 +6,6 @@ namespace TDKController.Interface
     public interface ICarrierIDReader
     {
         /// <summary>
-        /// Gets or sets the configuration file path for the carrier ID reader.
-        /// </summary>
-        string CarrierIDReaderConfigPath { get; set; }
-
-        /// <summary>
         /// Gets the active carrier ID reader type.
         /// </summary>
         CarrierIDReaderType CarrierIDReaderType { get; }

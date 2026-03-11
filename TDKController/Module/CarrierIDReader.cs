@@ -36,8 +36,6 @@ namespace TDKController
 
         protected string LastResponse { get; set; }
 
-        public string CarrierIDReaderConfigPath { get; set; }
-
         public abstract CarrierIDReaderType CarrierIDReaderType { get; }
 
         protected internal IConnector Connector
