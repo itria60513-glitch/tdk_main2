@@ -9,6 +9,8 @@ namespace TDKController
     /// </summary>
     public class IDReaderHermesRFID : CarrierIDReader
     {
+        private const int MaxPage = 17;
+
         public IDReaderHermesRFID(CarrierIDReaderConfig config, IConnector connector, ILogUtility logger)
             : base(config, connector, logger)
         {
@@ -25,52 +27,14 @@ namespace TDKController
         {
             try
             {
-                string normalized = TrimResponse(command);
-                if (string.IsNullOrEmpty(normalized) || normalized.Length < 10 || normalized[0] != 'S')
+                HermesFrame frame;
+                ErrorCode parseResult = TryParseFrame(command, out frame);
+                if (parseResult != ErrorCode.Success)
                 {
-                    return ErrorCode.CarrierIdCommandFailed;
+                    return parseResult;
                 }
 
-                int messageLength = Convert.ToInt32(normalized.Substring(1, 2), 16);
-                int frameLength = messageLength + 8;
-                if (normalized.Length != frameLength)
-                {
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                int endIndex = frameLength - 5;
-                if (normalized[endIndex] != '\r')
-                {
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                string message = normalized.Substring(3, messageLength);
-                string checksum = normalized.Substring(frameLength - 4, 4);
-                string expected = ComputeChecksums(normalized.Substring(0, frameLength - 4));
-
-                if (!string.Equals(checksum, expected, StringComparison.OrdinalIgnoreCase))
-                {
-                    return ErrorCode.CarrierIdChecksumError;
-                }
-
-                if (message.Length < 2)
-                {
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                char responseType = message[0];
-                char address = message[1];
-                if (address != '0')
-                {
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                if (responseType == 'e')
-                {
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                return responseType == 'x' || responseType == 'w' || responseType == 'v'
+                return IsSupportedResponse(frame.Message)
                     ? ErrorCode.Success
                     : ErrorCode.CarrierIdCommandFailed;
             }
@@ -100,7 +64,7 @@ namespace TDKController
 
                 try
                 {
-                    ErrorCode validationResult = ValidatePage();
+                    ErrorCode validationResult = ValidateReadRequest();
                     if (validationResult != ErrorCode.Success)
                     {
                         _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: invalid Hermes page {0}", Config.Page));
@@ -113,15 +77,7 @@ namespace TDKController
                         return connectResult;
                     }
 
-                    string response;
-                    ErrorCode result = SendCommand(PrepareCommand(string.Format("X0{0:D2}", Config.Page)), Config.TimeoutMs, out response);
-                    if (result != ErrorCode.Success)
-                    {
-                        return result;
-                    }
-
-                    carrierID = ExtractReadPayload(response);
-                    return string.IsNullOrEmpty(carrierID) ? ErrorCode.CarrierIdCommandFailed : ErrorCode.Success;
+                    return TryReadCarrierId(out carrierID);
                 }
                 finally
                 {
@@ -149,7 +105,7 @@ namespace TDKController
 
                 try
                 {
-                    ErrorCode validationResult = ValidateWritePayload(carrierID);
+                    ErrorCode validationResult = ValidateWriteRequest(carrierID);
                     if (validationResult != ErrorCode.Success)
                     {
                         _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("SetCarrierID: invalid Hermes payload for page {0}", Config.Page));
@@ -162,8 +118,7 @@ namespace TDKController
                         return connectResult;
                     }
 
-                    string response;
-                    return SendCommand(PrepareCommand(string.Format("W0{0:D2}{1}", Config.Page, carrierID.ToUpperInvariant())), Config.TimeoutMs, out response);
+                    return WriteCarrierId(carrierID);
                 }
                 finally
                 {
@@ -180,9 +135,19 @@ namespace TDKController
 
         private ErrorCode ValidatePage()
         {
-            return Config.Page >= 1 && Config.Page <= 17
+            return Config.Page >= 1 && Config.Page <= MaxPage
                 ? ErrorCode.Success
                 : ErrorCode.CarrierIdInvalidPage;
+        }
+
+        private ErrorCode ValidateReadRequest()
+        {
+            return ValidatePage();
+        }
+
+        private ErrorCode ValidateWriteRequest(string carrierID)
+        {
+            return ValidateWritePayload(carrierID);
         }
 
         private ErrorCode ValidateWritePayload(string carrierID)
@@ -201,6 +166,37 @@ namespace TDKController
             return ErrorCode.Success;
         }
 
+        private ErrorCode TryReadCarrierId(out string carrierID)
+        {
+            carrierID = string.Empty;
+
+            string response;
+            ErrorCode result = SendCommand(BuildReadCommand(), Config.TimeoutMs, out response);
+            if (result != ErrorCode.Success)
+            {
+                return result;
+            }
+
+            carrierID = ExtractReadPayload(response);
+            return string.IsNullOrEmpty(carrierID) ? ErrorCode.CarrierIdCommandFailed : ErrorCode.Success;
+        }
+
+        private ErrorCode WriteCarrierId(string carrierID)
+        {
+            string response;
+            return SendCommand(BuildWriteCommand(carrierID), Config.TimeoutMs, out response);
+        }
+
+        private string BuildReadCommand()
+        {
+            return PrepareCommand(string.Format("X0{0:D2}", Config.Page));
+        }
+
+        private string BuildWriteCommand(string carrierID)
+        {
+            return PrepareCommand(string.Format("W0{0:D2}{1}", Config.Page, carrierID.ToUpperInvariant()));
+        }
+
         private string PrepareCommand(string message)
         {
             string length = message.Length.ToString("X2");
@@ -210,16 +206,70 @@ namespace TDKController
 
         private string ExtractReadPayload(string response)
         {
-            string normalized = TrimResponse(response);
-            int length = Convert.ToInt32(normalized.Substring(1, 2), 16);
-            string message = normalized.Substring(3, length);
-            if (message.Length < 4 || message[0] != 'x' || message[1] != '0')
+            HermesFrame frame;
+            ErrorCode parseResult = TryParseFrame(response, out frame);
+            if (parseResult != ErrorCode.Success || !IsReadResponse(frame.Message))
             {
                 return string.Empty;
             }
 
-            string info = message.Substring(2);
+            string info = frame.Message.Substring(2);
             return info.Length > 2 ? info.Substring(2) : string.Empty;
+        }
+
+        private ErrorCode TryParseFrame(string response, out HermesFrame frame)
+        {
+            frame = default(HermesFrame);
+            string normalized = TrimResponse(response);
+            if (string.IsNullOrEmpty(normalized) || normalized.Length < 10 || normalized[0] != 'S')
+            {
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            int messageLength = Convert.ToInt32(normalized.Substring(1, 2), 16);
+            int frameLength = messageLength + 8;
+            if (normalized.Length != frameLength)
+            {
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            int endIndex = frameLength - 5;
+            if (normalized[endIndex] != '\r')
+            {
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            string message = normalized.Substring(3, messageLength);
+            if (message.Length < 2 || message[1] != '0')
+            {
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            string checksum = normalized.Substring(frameLength - 4, 4);
+            string expected = ComputeChecksums(normalized.Substring(0, frameLength - 4));
+            if (!string.Equals(checksum, expected, StringComparison.OrdinalIgnoreCase))
+            {
+                return ErrorCode.CarrierIdChecksumError;
+            }
+
+            frame = new HermesFrame(message);
+            return ErrorCode.Success;
+        }
+
+        private static bool IsSupportedResponse(string message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return false;
+            }
+
+            char responseType = message[0];
+            return responseType == 'x' || responseType == 'w' || responseType == 'v';
+        }
+
+        private static bool IsReadResponse(string message)
+        {
+            return !string.IsNullOrEmpty(message) && message[0] == 'x';
         }
 
         private static string ComputeChecksums(string value)
@@ -233,6 +283,16 @@ namespace TDKController
             }
 
             return string.Format("{0:X2}{1:X2}", xorValue & 0xFF, addValue & 0xFF);
+        }
+
+        private struct HermesFrame
+        {
+            public HermesFrame(string message)
+            {
+                Message = message;
+            }
+
+            public string Message { get; }
         }
     }
 }

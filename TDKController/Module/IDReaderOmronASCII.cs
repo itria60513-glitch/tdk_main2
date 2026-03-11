@@ -9,6 +9,8 @@ namespace TDKController
     /// </summary>
     public class IDReaderOmronASCII : CarrierIDReader
     {
+        private const int MaxPage = 30;
+
         public IDReaderOmronASCII(CarrierIDReaderConfig config, IConnector connector, ILogUtility logger)
             : base(config, connector, logger)
         {
@@ -52,7 +54,7 @@ namespace TDKController
 
                 try
                 {
-                    ErrorCode validationResult = ValidatePage(30);
+                    ErrorCode validationResult = ValidateReadRequest();
                     if (validationResult != ErrorCode.Success)
                     {
                         _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: invalid Omron ASCII page {0}", Config.Page));
@@ -65,22 +67,7 @@ namespace TDKController
                         return connectResult;
                     }
 
-                    string response;
-                    ErrorCode result = SendCommand(BuildReadCommand(Config.Page), Config.TimeoutMs, out response);
-                    if (result != ErrorCode.Success)
-                    {
-                        return result;
-                    }
-
-                    string payload = ExtractPayload(response);
-                    if (!IsPrintableAscii(payload))
-                    {
-                        _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: malformed Omron ASCII payload {0}", TrimResponse(response)));
-                        return ErrorCode.CarrierIdCommandFailed;
-                    }
-
-                    carrierID = payload;
-                    return ErrorCode.Success;
+                    return TryReadCarrierId(out carrierID);
                 }
                 finally
                 {
@@ -108,7 +95,7 @@ namespace TDKController
 
                 try
                 {
-                    ErrorCode validationResult = ValidateAsciiWrite(carrierID);
+                    ErrorCode validationResult = ValidateWriteRequest(carrierID);
                     if (validationResult != ErrorCode.Success)
                     {
                         _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", Config.Page));
@@ -121,8 +108,7 @@ namespace TDKController
                         return connectResult;
                     }
 
-                    string response;
-                    return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
+                    return WriteCarrierId(carrierID);
                 }
                 finally
                 {
@@ -141,6 +127,34 @@ namespace TDKController
         {
             string normalized = TrimResponse(response);
             return normalized.Length <= 2 ? string.Empty : normalized.Substring(2);
+        }
+
+        protected ErrorCode TryReadCarrierId(out string carrierID)
+        {
+            carrierID = string.Empty;
+
+            string response;
+            ErrorCode result = SendCommand(BuildReadCommand(Config.Page), Config.TimeoutMs, out response);
+            if (result != ErrorCode.Success)
+            {
+                return result;
+            }
+
+            string payload = ExtractPayload(response);
+            if (!IsPrintableAscii(payload))
+            {
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: malformed Omron ASCII payload {0}", TrimResponse(response)));
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            carrierID = payload;
+            return ErrorCode.Success;
+        }
+
+        protected ErrorCode WriteCarrierId(string carrierID)
+        {
+            string response;
+            return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
         }
 
         protected string BuildReadCommand(int page)
@@ -236,9 +250,19 @@ namespace TDKController
                 : ErrorCode.CarrierIdInvalidPage;
         }
 
+        protected ErrorCode ValidateReadRequest()
+        {
+            return ValidatePage(MaxPage);
+        }
+
+        protected ErrorCode ValidateWriteRequest(string carrierID)
+        {
+            return ValidateAsciiWrite(carrierID);
+        }
+
         protected ErrorCode ValidateAsciiWrite(string carrierID)
         {
-            ErrorCode pageResult = ValidatePage(30);
+            ErrorCode pageResult = ValidatePage(MaxPage);
             if (pageResult != ErrorCode.Success)
             {
                 return pageResult;
