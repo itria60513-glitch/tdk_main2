@@ -31,7 +31,12 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+[Gates determined based on constitution file, including any required validation for
+feature-scoped reference-interface exceptions. If such an exception exists, record
+the named feature, the exact interface, the minimal approved member changes, the
+user approval source, confirmation that spec.md / plan.md / tasks.md all capture
+the same scope, and confirmation that immutable references such as IConnector and
+HRESULT remain unchanged.]
 
 ## Project Structure
 

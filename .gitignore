@@ -22,6 +22,8 @@ ReleaseMinDependency/
 ReleaseUMinDependency/
 #Windows Thumbnail 
 Thumbs.db
+.DS_Store
+*.swp
 
 # =============================
 

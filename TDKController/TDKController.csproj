@@ -40,6 +40,7 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config\CarrierIDReaderConfig.cs" />
     <Compile Include="Config\LoadportActorConfig.cs" />
     <Compile Include="GUI\N2NozzleSettingGUI.cs">
       <SubType>UserControl</SubType>
@@ -70,6 +71,11 @@
     <Compile Include="Interface\IN2Nozzle.cs" />
     <Compile Include="Interface\ErrorCode.cs" />
     <Compile Include="Interface\ILoadPortActor.cs" />
+    <Compile Include="Module\CarrierIDReader.cs" />
+    <Compile Include="Module\IDReaderBarcodeReader.cs" />
+    <Compile Include="Module\IDReaderHermesRFID.cs" />
+    <Compile Include="Module\IDReaderOmronASCII.cs" />
+    <Compile Include="Module\IDReaderOmronHex.cs" />
     <Compile Include="Module\LoadportActor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -1,89 +1,80 @@
 # 快速入門：Carrier ID Reader Implementation
 
-**Branch**: `002-carrier-id-reader-impl` | **Date**: 2026-03-10
+**Branch**: `002-carrier-id-reader-impl` | **Date**: 2026-03-11
 
-## 概覽
+## zh-TW
 
-CarrierID Reader 模組提供統一的載體識別介面，支援四種讀取器類型。
-
-## 使用方式
-
-### 1. 建立讀取器實例
+### 建立讀取器
 
 ```csharp
-// Step 1: Prepare dependencies
 var config = new CarrierIDReaderConfig
 {
     ReaderType = CarrierIDReaderType.BarcodeReader,
     TimeoutMs = 10000,
-    MaxRetryCount = 3
+    MaxRetryCount = 8,
+    Page = 1
 };
-IConnector connector = /* ... injected communication connector ... */;
-ILogUtility logger = /* ... injected log utility ... */;
 
-// Step 2: Create reader (choose one based on configured type)
+IConnector connector = /* injected connector */;
+ILogUtility logger = /* injected logger */;
 ICarrierIDReader reader = new IDReaderBarcodeReader(config, connector, logger);
-// or: new IDReaderOmronASCII(config, connector, logger);
-// or: new IDReaderOmronHex(config, connector, logger);
-// or: new IDReaderHermesRFID(config, connector, logger);
 ```
 
-### 2. 讀取載體 ID
+### 讀取流程
 
 ```csharp
 ErrorCode result = reader.GetCarrierID(out string carrierID);
 if (result == ErrorCode.Success)
 {
-    // carrierID contains the ASCII string identifier
     logger.WriteLog("Reader", "Carrier ID: " + carrierID);
 }
-else
-{
-    logger.WriteLog("Reader", "Read failed: " + result.ToString());
-}
 ```
 
-### 3. 寫入載體 ID（僅 RFID）
+Barcode BL600 會在單次等待最多 10 秒的前提下執行最多 8 次讀取嘗試。每次呼叫結束時都會執行 trigger off、motor off、disconnect 清理。
+
+### 寫入流程
 
 ```csharp
-ErrorCode result = reader.SetCarrierID("CARRIER_DATA_001");
+config.ReaderType = CarrierIDReaderType.OmronASCII;
+ICarrierIDReader reader = new IDReaderOmronASCII(config, connector, logger);
+ErrorCode writeResult = reader.SetCarrierID("CARRIERDATA0001");
+```
+
+RFID 寫入會先驗證頁碼、長度與字元格式，不合法 payload 會在送出裝置命令前直接失敗。
+
+## en-US
+
+### Create a reader
+
+```csharp
+var config = new CarrierIDReaderConfig
+{
+    ReaderType = CarrierIDReaderType.OmronHex,
+    TimeoutMs = 10000,
+    MaxRetryCount = 8,
+    Page = 2
+};
+
+ICarrierIDReader reader = new IDReaderOmronHex(config, connector, logger);
+```
+
+### Read a carrier ID
+
+```csharp
+ErrorCode result = reader.GetCarrierID(out string carrierID);
 if (result == ErrorCode.Success)
 {
-    logger.WriteLog("Reader", "Write succeeded");
+    logger.WriteLog("Reader", "Carrier ID: " + carrierID);
 }
 ```
 
-## 錯誤處理
+Each device wait stage uses its own 10-second timeout budget. Barcode retries stop immediately on the first valid read and fail after the eighth unreadable result.
 
-| ErrorCode | 處理建議 |
-|-----------|---------|
-| Success (0) | 操作成功 |
-| CarrierIdTimeout (-302) | 檢查裝置連線、增加逾時值 |
-| CarrierIdBusy (-304) | 等待前一操作完成後重試 |
-| CarrierIdReadFailed (-312) | 檢查載體媒體是否就位 |
-| CarrierIdConnectFailed (-309) | 檢查通訊埠設定 |
-| CarrierIdChecksumError (-308) | 檢查 Hermes 讀取器線路品質 |
+### Write a carrier ID
 
-## 建置與測試
-
-```powershell
-# 建置專案
-msbuild TDKServer.sln /p:Configuration=Debug
-
-# 執行單元測試
-dotnet test AutoTest/TDKController.Tests/TDKController.Tests.csproj
+```csharp
+ICarrierIDReader reader = new IDReaderHermesRFID(config, connector, logger);
+ErrorCode result = reader.SetCarrierID("4142434445463031");
 ```
 
-## 架構摘要
-
-```
-ICarrierIDReader (介面)
-       │
-CarrierIDReader (基底，abstract)
-       │
-  ┌────┼────────┬────────────┐
-  │    │        │            │
-BarcodeReader  OmronASCII  OmronHex  HermesRFID
-```
-
-每個子類別負責其設備專屬的協定流程，基底類別處理共用邏輯（並行保護、通訊管理、日誌）。
+Supported RFID writers reject invalid page numbers and malformed payloads before any device I/O is sent.

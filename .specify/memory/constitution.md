@@ -1,31 +1,32 @@
 <!--
-Sync Impact Report — v3.5.0 → v3.5.1
+Sync Impact Report — v3.6.1 → v3.6.2
 
-Version change: 3.5.0 → 3.5.1 (PATCH: 測試覆蓋率目標提升與介面合規約束)
+Version change: 3.6.1 → 3.6.2 (PATCH: 將 logging 與 communication 的參考定義對齊目前實際專案與介面檔案)
 
 Modified sections:
-- 測試標準: 覆蓋率目標從「至少 80%」改為「盡量 100%」
-- 測試標準: 新增「介面與類別合規」規則
+- 必要基礎設施介面: 將 IConnector 對齊至 Communication/Interface/IConnector.cs 與 Communication.Interface 命名空間
+- 必要基礎設施介面: 將 ILogUtility 對齊至 TDKLogUtility/Interface/ILogUtility.cs 與 TDKLogUtility.Module 命名空間
+- 專案組成與分層說明: 將 TDKCommunication 對齊為 Communication 專案名稱
 
 Added sections: (none)
 
 Removed sections: (none)
 
 Templates requiring updates:
-- .specify/templates/plan-template.md — ✅ no change required
-- .specify/templates/spec-template.md — ✅ no change required
-- .specify/templates/tasks-template.md — ✅ no change required
+- .specify/templates/plan-template.md — ✅ no change needed
+- .specify/templates/spec-template.md — ✅ no change needed
+- .specify/templates/tasks-template.md — ✅ no change needed
 - .specify/templates/commands/*.md — ✅ not present
-- README.md — ✅ no change required
+- .github/copilot-instructions.md — ✅ updated
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.5.1
+**版本**: 3.6.2
 **批准日期**: 2026-02-01
-**最後修訂**: 2026-03-10
+**最後修訂**: 2026-03-11
 
 ## 核心原則
 
@@ -309,17 +310,22 @@ public enum ErrorCode : int
 
 ### 介面使用政策
 
-- **參考介面穩定性**：使用者提供的介面檔案**不得**被修改或拆分為多個檔案。
-- **HRESULT 參考穩定性**：`ExceptionManagement.HRESULT` 由參考系統定義，**不得**被修改、替換或模擬。
+- **參考介面穩定性**：使用者提供的參考介面檔案原則上**不得**被修改或拆分為多個檔案。
+- **功能限定例外**：僅當使用者對具名 feature 明確批准，且變更對象是該 feature 直接相關的參考介面時，才允許進行最小必要修改。
+- **例外範圍限制**：核准例外僅限該 feature 所需成員；**不得**一併調整不相關成員、命名、簽章或檔案結構。
+- **文件記錄義務**：任何核准例外**必須**同步記錄於該 feature 的 spec、plan、tasks，並明列核准來源、目標介面、允許修改成員範圍，以及明確排除的不可修改項目。
+- **不得自動推廣**：單一 feature 的核准例外**不得**推廣為其他 feature、其他介面或一般性修改許可。
+- **IConnector 參考穩定性**：`IConnector` 為專案 communication 定義的核心基礎設施介面，**不得**因任何 feature 例外而修改、替換、拆分或移除。
+- **HRESULT 參考穩定性**：`ExceptionManagement.HRESULT` 由參考系統定義，**不得**因任何 feature 例外而修改、替換或模擬。
 
 #### 必要基礎設施介面
 
-- **通訊介面**：`IConnector`（來自 `CommunicationChannel` 命名空間）
-    - 來源檔案：`CommChannel.cs`（第 27 行）
+- **通訊介面**：`IConnector`（來自 `Communication.Interface` 命名空間）
+    - 來源檔案：`Communication/Interface/IConnector.cs`
     - 所有外部通訊（RS232、TCP）**必須**透過此介面
 
 - **日誌介面**：`ILogUtility`（來自 `TDKLogUtility.Module` 命名空間）
-    - 來源檔案：`TDKLogUtility/Interface/AbstractLogUtility.cs`（第 22 行）
+    - 來源檔案：`TDKLogUtility/Interface/ILogUtility.cs`
     - TDKLogUtility 專案為**唯讀**，**不得**修改
 
 #### 相依性注入規則
@@ -336,7 +342,7 @@ public enum ErrorCode : int
 | TDKService | EXE/DLL | 服務層（Host 通訊、命令解析、回應格式化） | Host 協議 |
 | TDKController | DLL | 控制器與模組層 | 消費者 |
 | TDKLogUtility | DLL | 日誌工具（**唯讀**）| `ILogUtility` |
-| TDKCommunication | DLL | 傳輸介面（重用既有介面）| `IConnector` |
+| Communication | DLL | 傳輸介面（重用既有介面）| `IConnector` |
 
 ### 參考檔案管理
 
@@ -347,7 +353,7 @@ public enum ErrorCode : int
 ### 標準專案結構
 
 ```text
-[ProjectName]/
+ExampleProject/
 ├── GUI/
 ├── Config/
 ├── Module/
@@ -390,7 +396,7 @@ public ErrorCode MethodName(out string data, int param)
 **特殊規則**：
 
 - 查詢方法的 `out` 參數回傳 Loadport（TAS300）設備原始回應或處理後的狀態資料
-- Host 協議層（TDKService）負責將回傳值格式化為 `io <command> <status> [data]\r\n` 格式
+- Host 協議層（TDKService）負責將回傳值格式化為 `io <command> <status> {data}\r\n` 格式
 - Host 回應碼（如 `0x1`、`0xc017`、`0xc021`）由 TDKService 根據 `ErrorCode` 判斷產生，Module 層與 Controller 層不負責
 
 ### 分層規則
@@ -399,7 +405,7 @@ public ErrorCode MethodName(out string data, int param)
 Service 層（TDKService）— Host 通訊、命令解析、回應格式化
 Controller 層（TDKController/Controller）— Facade，組合與協調模組
 Module 層（TDKController 內的設備）— 硬體控制模組
-Infrastructure 層（TDKLogUtility、TDKCommunication、Config）
+Infrastructure 層（TDKLogUtility、Communication、Config）
 ```
 
 - **TDKService** 為最上層，負責與 Host 通訊（接收命令、發送回應）。
@@ -446,7 +452,7 @@ public enum ProgramState
 ```text
 AutoTest/
 ├── AutoTest.sln              # 管理所有 UT 專案的 Solution
-├── [ProjectName].Tests/
+├── ExampleProject.Tests/
 │   ├── Unit/
 │   ├── Integration/
 │   └── Helpers/
@@ -505,4 +511,5 @@ AutoTest/
 
 - 所有程式碼審查**必須**驗證是否符合憲章。
 - 任何偏離憲章的行為**必須**被記錄並核准。
+- 已核准的 feature 介面例外**必須**驗證 spec、plan、tasks 三者對目標介面、允許成員範圍與不可修改項目之記錄完全一致。
 - 定期審查憲章並在必要時提出修訂。

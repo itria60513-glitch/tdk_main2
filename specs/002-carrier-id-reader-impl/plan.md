@@ -15,7 +15,7 @@
 **Testing**: NUnit 3.x + Moq  
 **Target Platform**: Windows 桌面（Windows Forms 主機應用程式）  
 **Project Type**: 類別庫（TDKController.dll 內的模組）  
-**Performance Goals**: 單次讀寫操作 ≤ 10 秒（逾時上限）  
+**Performance Goals**: 單次裝置等待階段預設逾時 ≤ 10 秒；Barcode reader 的每次 retry 皆可各自使用一次 10 秒等待預算  
 **Constraints**: .NET Framework 4.7.2 限制（無 async/await Task-based patterns 預設使用）；C# 7.3 語法限制  
 **Scale/Scope**: 4 個讀取器子類別 + 1 個基底類別 + 1 個介面 + 1 個組態類別 + 1 個列舉
 
@@ -38,7 +38,7 @@
 | XML 文件註解 | ✅ PASS | 公開 API 必含 XML 文件 |
 | 程式碼實作註解 | ✅ PASS | 所有實作區塊含英文行內註解 |
 | 測試標準 (NUnit + Moq) | ✅ PASS | 單元測試模擬 IConnector 與 ILogUtility |
-| 介面使用政策 | ✅ PASS | 重用現有 IConnector；`ICarrierIDReader` 僅能在使用者批准前提下補足本功能必要成員 |
+| 介面使用政策 | ✅ PASS | 重用現有 IConnector；`ICarrierIDReader` 僅能依 2026-03-11 使用者批准，在本功能最小必要範圍內補足直接相關成員，且明確排除 `IConnector` 與 `ExceptionManagement.HRESULT` |
 | YAGNI | ✅ PASS | 僅實作 spec 中要求的功能 |
 | 檔案建立政策 | ✅ PASS | 使用者已明確要求建立 4 個子類別檔案；5 個測試檔案已於 2026-03-11 經使用者批准建立，並記錄於 spec Clarifications |
 | 實作輸出限制 | ✅ PASS | 不使用 speckit task 分類作為程式碼註解 |
@@ -65,7 +65,7 @@ specs/002-carrier-id-reader-impl/
 ```text
 TDKController/
 ├── Interface/
-│   ├── ICarrierIDReader.cs          # 介面定義（已存在，僅能在使用者批准下補足必要成員）
+│   ├── ICarrierIDReader.cs          # 介面定義（已存在，依使用者批准可在本功能最小必要範圍內補足成員）
 │   └── ErrorCode.cs                 # 錯誤碼列舉（已存在，需新增 -300 系列）
 ├── Config/
 │   └── CarrierIDReaderConfig.cs     # 組態類別（已存在，待填充）
@@ -90,9 +90,9 @@ AutoTest/
 
 **補充決策**:
 
-- `ICarrierIDReader` 若需補足本功能必要成員，必須以使用者批准為前提；`IConnector` 與 `HRESULT` 仍屬唯讀參考介面，不在可修改範圍內。
+- `ICarrierIDReader` 已獲使用者於 2026-03-11 明確批准，得在本功能最小必要範圍內補足成員；允許修改僅限 Carrier ID Reader 功能直接需要的介面成員，不得擴及其他 feature、其他介面、命名重構、檔案結構調整或非必要簽章變更；`IConnector` 與 `ExceptionManagement.HRESULT` 仍屬唯讀參考介面，不在可修改範圍內。
 - 所有公開 API XML 文件、英文行內註解、以及協定流程對規格/legacy reference 的對應說明，必須在實作完成前由明確任務驗收。
-- RFID 寫入流程先依讀取器類型執行 payload validation；具體數值上限待 legacy logic 與 PlantUML 確認後再補充至後續文件。
+- RFID 寫入流程先依讀取器類型執行 payload validation；目前已採最小落地規則：Omron ASCII 為頁碼 1-30、固定 16 字元、可列印 ASCII 並排除控制字元，Omron HEX 為頁碼 1-30、固定 16 字元、十六進位字元，Hermes RFID 為頁碼 1-17、固定 16 字元、十六進位字元；更細的裝置限制可於後續依 legacy logic 與 PlantUML 再補充。
 
 ## 複雜度追蹤
 

@@ -52,6 +52,7 @@ As a service or integration workflow, I need to write carrier data back to suppo
 
 1. **Given** a supported RFID device is available and writable media is present, **When** valid carrier data is submitted for writing, **Then** the system writes the data and reports success.
 2. **Given** a supported RFID device rejects the write request, **When** valid carrier data is submitted, **Then** the system reports the write failure without claiming success.
+3. **Given** a write request payload violates the configured reader type's supported page, encoding, length, or format constraints, **When** the write is requested, **Then** the system rejects the request with a deterministic validation failure before sending any device command.
 
 ---
 
@@ -120,6 +121,7 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 
 - Q: 是否允許為 CarrierIDReader 功能新增獨立測試檔？ → A: 允許，於 `AutoTest/TDKController.Tests/Unit/` 新增 5 個測試檔（1 個基底類別 + 4 個具體讀取器），並將此批准記錄於規格與計畫文件。
 - Q: 若 `ICarrierIDReader` 現有成員不足，是否允許修改？ → A: 允許，但僅限使用者批准前提下補足本功能必要成員，且必須在計畫與任務文件中記錄這項限制。
+- Q: 在本功能範圍內，是否批准將上述 `ICarrierIDReader` 修改視為本次 feature 的例外授權？ → A: 批准。核准來源為 2026-03-11 使用者批准，目標介面為 `ICarrierIDReader`；雖然參考介面預設應保持穩定，但本功能允許在最小必要範圍內修改 `ICarrierIDReader`，前提是變更僅限 Carrier ID Reader 功能直接需要的成員，且必須明確記錄於規格、計畫與任務文件。此例外不得擴及其他 feature 或其他介面，並明確排除 `IConnector` 與 `ExceptionManagement.HRESULT`，兩者仍維持不可修改。
 - Q: RFID 寫入 payload 限制暫未定值時應如何規範？ → A: 先定義 validation requirement；具體限制值與裝置格式細節後續依 legacy logic 與 PlantUML 補齊。
 - Q: 10 秒逾時限制應如何套用於重試與協定階段？ → A: 10 秒為單次裝置等待階段的預設逾時值；Barcode reader 的每次重試皆可各自使用一次 10 秒逾時，不與前一次重試共享預算；各協定可使用較短的內部等待階段，但單一等待階段不得超過 10 秒。
 - Q: 在具體裝置限制值尚未完全回填前，RFID 寫入 payload validation 的最小落地規則為何？ → A: 採最小可實作規則：Omron ASCII 僅接受頁碼 1–30、長度固定 16 字元、且內容必須為可列印 ASCII 並排除控制字元；Omron HEX 僅接受頁碼 1–30、長度固定 16 字元、且內容必須為十六進位字元；Hermes RFID 僅接受頁碼 1–17、長度固定 16 字元、且內容必須為十六進位字元。凡不符合上述規則者，皆視為 invalid payload，必須在送出裝置命令前回傳 deterministic validation failure。
@@ -131,7 +133,7 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - Caller-facing behavior should remain consistent even when the internal reader protocol differs.
 - Only the four reader types named in the request are in scope for this feature.
 - The bilingual quickstart requirement is satisfied by a single `quickstart.md` file that contains both zh-TW and en-US sections.
-- Until protocol-specific limits are confirmed from legacy references, RFID payload validation will enforce reader-type-specific encoding, length, and format rules without hardcoding undocumented numeric limits in this specification.
+- Until protocol-specific limits are fully confirmed from legacy references, RFID payload validation will enforce the currently approved minimum implementation rules for reader-specific page ranges, length, encoding, and format, and later refinements may narrow or extend device-specific constraints based on validated legacy behavior.
 
 ## Success Criteria *(mandatory)*
 

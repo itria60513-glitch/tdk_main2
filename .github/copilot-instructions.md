@@ -25,13 +25,13 @@ Controller Layer  (TDKController) - Facade exposing ILoadportController
     |
 Module Layer      (LoadportActor, N2Purge, CarrierIDReader, LightCurtain, E84)
     |
-Infrastructure    (TDKLogUtility [READ-ONLY], TDKCommunication, Config)
+Infrastructure    (TDKLogUtility [READ-ONLY], Communication, Config)
 ```
 
 - Upper layers may inject and use lower layers. Lower layers must NOT reference upper layers.
 - Same-layer modules interact through interfaces only.
 - **Read-only**: `TDKLogUtility/` project, `IConnector` interface, `HRESULT` type. Do not modify.
-- Key interfaces: `ILogUtility` at `TDKLogUtility/Interface/AbstractLogUtility.cs:22`, `IConnector` at `CommChannel.cs:27`.
+- Key interfaces: `ILogUtility` at `TDKLogUtility/Interface/ILogUtility.cs`, `IConnector` at `Communication/Interface/IConnector.cs`.
 
 ## Build and Test
 

@@ -12,6 +12,11 @@ description: "Task list template for feature implementation"
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+If the feature has a user-approved exception to reference-interface stability, the
+task list MUST include explicit work items that record and enforce the exact
+approved interface scope, and it MUST NOT broaden that exception to other
+interfaces or other features.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

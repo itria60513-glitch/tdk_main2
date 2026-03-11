@@ -5,6 +5,13 @@
 **Status**: Draft  
 **Input**: User description: "$ARGUMENTS"
 
+<!--
+  If the feature requires a user-approved exception to reference-interface
+  stability, the spec MUST record the named feature, target interface, exact
+  approved member scope, approval source, and the interfaces or types that remain
+  immutable.
+-->
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

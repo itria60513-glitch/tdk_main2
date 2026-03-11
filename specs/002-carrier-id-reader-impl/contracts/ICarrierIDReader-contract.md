@@ -78,7 +78,7 @@ namespace TDKController.Interface
 | 設備逾時 | 回傳 `CarrierIdTimeout`，`carrierID` 為 null |
 | 設備拒絕命令 | 回傳 `CarrierIdCommandFailed`，`carrierID` 為 null |
 | 另一操作進行中 | 回傳 `CarrierIdBusy`，`carrierID` 為 null（不發送命令） |
-| Barcode 重試耗盡 | 回傳 `CarrierIdReadFailed`，`carrierID` 為 null |
+| Barcode 重試耗盡（最多 8 次） | 回傳 `CarrierIdReadFailed`，`carrierID` 為 null |
 | 連線失敗 | 回傳 `CarrierIdConnectFailed`，`carrierID` 為 null |
 
 ### SetCarrierID
@@ -130,7 +130,7 @@ CarrierIdError = -300,
 /// <summary>Signal reset failed during reader operation.</summary>
 CarrierIdSemaphoreResetFailed = -301,
 
-/// <summary>Device response timeout (default 10 seconds).</summary>
+/// <summary>Device response timeout (single wait default 10 seconds).</summary>
 CarrierIdTimeout = -302,
 
 /// <summary>Device reported command failure (NAK, error code, etc.).</summary>

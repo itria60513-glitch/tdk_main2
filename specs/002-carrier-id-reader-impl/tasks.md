@@ -19,8 +19,8 @@
 
 **Purpose**: Reconfirm the existing Carrier ID Reader feature scaffold and test targets before updating implementation work.
 
-- [ ] T001 Verify the existing Carrier ID Reader source placeholders and approved file targets in TDKController/Interface/, TDKController/Config/, TDKController/Module/, and AutoTest/TDKController.Tests/Unit/
-- [ ] T002 Verify NUnit 3.x + Moq references and Unit test discovery configuration in AutoTest/TDKController.Tests/TDKController.Tests.csproj
+- [X] T001 Verify the existing Carrier ID Reader source placeholders and approved file targets in TDKController/Interface/, TDKController/Config/, TDKController/Module/, and AutoTest/TDKController.Tests/Unit/
+- [X] T002 Verify NUnit 3.x + Moq references and Unit test discovery configuration in AutoTest/TDKController.Tests/TDKController.Tests.csproj
 
 ---
 
@@ -30,11 +30,11 @@
 
 **⚠️ CRITICAL**: No user story work should start before this phase is complete.
 
-- [ ] T003 [P] Reconcile the reader contract and approved members for read/write operations in TDKController/Interface/ICarrierIDReader.cs using specs/002-carrier-id-reader-impl/contracts/ICarrierIDReader-contract.md
-- [ ] T004 [P] Add and verify Carrier ID Reader error codes for timeout, busy, validation, checksum, and retry-exhausted outcomes in TDKController/Interface/ErrorCode.cs
-- [ ] T005 [P] Update shared reader defaults for 10-second single-wait timeout semantics, Barcode max retry count 8, and reader-type page constraints in TDKController/Config/CarrierIDReaderConfig.cs
-- [ ] T006 Implement shared busy-guard, connector session, response wait, and cleanup infrastructure in TDKController/Module/CarrierIDReader.cs
-- [ ] T007 [P] Add base-class tests for busy guard, timeout propagation, and cleanup release paths in AutoTest/TDKController.Tests/Unit/CarrierIDReaderBaseTests.cs
+- [X] T003 [P] Record and apply the 2026-03-11 user-approved `ICarrierIDReader` exception scope for feature `002-carrier-id-reader-impl`, limited to the minimum members required for Carrier ID Reader read/write operations, and explicitly exclude any changes to `IConnector` and `ExceptionManagement.HRESULT`, in TDKController/Interface/ICarrierIDReader.cs and specs/002-carrier-id-reader-impl/contracts/ICarrierIDReader-contract.md
+- [X] T004 [P] Add and verify Carrier ID Reader error codes for timeout, busy, validation, checksum, and retry-exhausted outcomes in TDKController/Interface/ErrorCode.cs
+- [X] T005 [P] Update shared reader defaults for 10-second single-wait timeout semantics, Barcode max retry count 8, and reader-type page constraints in TDKController/Config/CarrierIDReaderConfig.cs
+- [X] T006 Implement shared busy-guard, connector session, response wait, and cleanup infrastructure in TDKController/Module/CarrierIDReader.cs
+- [X] T007 [P] Add base-class tests for busy guard, timeout propagation, and cleanup release paths in AutoTest/TDKController.Tests/Unit/CarrierIDReaderBaseTests.cs
 
 **Checkpoint**: Shared contracts and base behavior compile cleanly and are ready for protocol-specific work.
 
@@ -48,14 +48,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Add Barcode tests for success, unreadable media, retry exhaustion at 8 attempts, and stop-on-first-success behavior in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs
-- [ ] T009 [P] [US1] Add Barcode timeout tests covering per-attempt 10-second wait semantics, non-shared retry budgets, and safe end-state cleanup in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs
+- [X] T008 [P] [US1] Add Barcode tests for success, unreadable media, retry exhaustion at 8 attempts, and stop-on-first-success behavior in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs
+- [X] T009 [P] [US1] Add Barcode timeout tests covering per-attempt 10-second wait semantics, non-shared retry budgets, and safe end-state cleanup in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Implement the BL600 connection, MotorON, LON or read, LOFF, MotorOFF, and disconnect sequence following the lp204.cc legacy flow in TDKController/Module/IDReaderBarcodeReader.cs
-- [ ] T011 [US1] Implement the Barcode retry loop with up to 8 read attempts, per-attempt timeout handling, NG or unreadable response handling, and stop-on-valid-read behavior in TDKController/Module/IDReaderBarcodeReader.cs
-- [ ] T012 [US1] Validate the Barcode workflow examples and expected failure behavior in specs/002-carrier-id-reader-impl/quickstart.md
+- [X] T010 [US1] Implement the BL600 connection, MotorON, LON or read, LOFF, MotorOFF, and disconnect sequence following the lp204.cc legacy flow in TDKController/Module/IDReaderBarcodeReader.cs
+- [X] T011 [US1] Implement the Barcode retry loop with up to 8 read attempts, per-attempt timeout handling, NG or unreadable response handling, and stop-on-valid-read behavior in TDKController/Module/IDReaderBarcodeReader.cs
+- [X] T012 [US1] Validate the Barcode workflow examples and expected failure behavior in specs/002-carrier-id-reader-impl/quickstart.md
 
 **Checkpoint**: A caller can read a carrier identifier through the unified API using the Barcode reader path.
 
@@ -69,15 +69,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T013 [P] [US2] Add Omron ASCII read tests covering success, invalid page rejection, malformed payload handling, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
-- [ ] T014 [P] [US2] Add Omron HEX read tests covering success, HEX-to-ASCII conversion, malformed HEX payload handling, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderOmronHexTests.cs
-- [ ] T015 [P] [US2] Add Hermes RFID read tests covering success, checksum or integrity failures, invalid page rejection, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderHermesRFIDTests.cs
+- [X] T013 [P] [US2] Add Omron ASCII read tests covering success, invalid page rejection, malformed payload handling, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
+- [X] T014 [P] [US2] Add Omron HEX read tests covering success, HEX-to-ASCII conversion, malformed HEX payload handling, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderOmronHexTests.cs
+- [X] T015 [P] [US2] Add Hermes RFID read tests covering success, checksum or integrity failures, invalid page rejection, and timeout behavior in AutoTest/TDKController.Tests/Unit/IDReaderHermesRFIDTests.cs
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Implement the Omron ASCII read protocol, page-mask assembly, response parsing, and per-stage timeout handling in TDKController/Module/IDReaderOmronASCII.cs
-- [ ] T017 [P] [US2] Implement the Omron HEX read protocol, page-mask assembly, HEX-to-ASCII conversion, and per-stage timeout handling in TDKController/Module/IDReaderOmronHex.cs
-- [ ] T018 [P] [US2] Implement the Hermes RFID read protocol, checksum validation, response integrity checks, and per-stage timeout handling in TDKController/Module/IDReaderHermesRFID.cs
+- [X] T016 [P] [US2] Implement the Omron ASCII read protocol, page-mask assembly, response parsing, and per-stage timeout handling in TDKController/Module/IDReaderOmronASCII.cs
+- [X] T017 [P] [US2] Implement the Omron HEX read protocol, page-mask assembly, HEX-to-ASCII conversion, and per-stage timeout handling in TDKController/Module/IDReaderOmronHex.cs
+- [X] T018 [P] [US2] Implement the Hermes RFID read protocol, checksum validation, response integrity checks, and per-stage timeout handling in TDKController/Module/IDReaderHermesRFID.cs
 
 **Checkpoint**: All supported reader protocols expose consistent read behavior to the caller.
 
@@ -91,15 +91,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T019 [P] [US3] Add Omron ASCII write tests covering valid writes and deterministic validation failures for pages outside 1-30, non-printable ASCII, control characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
-- [ ] T020 [P] [US3] Add Omron HEX write tests covering valid writes and deterministic validation failures for pages outside 1-30, non-hex characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderOmronHexTests.cs
-- [ ] T021 [P] [US3] Add Hermes RFID write tests covering valid writes and deterministic validation failures for pages outside 1-17, non-hex characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderHermesRFIDTests.cs
+- [X] T019 [P] [US3] Add Omron ASCII write tests covering valid writes and deterministic validation failures for pages outside 1-30, non-printable ASCII, control characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
+- [X] T020 [P] [US3] Add Omron HEX write tests covering valid writes and deterministic validation failures for pages outside 1-30, non-hex characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderOmronHexTests.cs
+- [X] T021 [P] [US3] Add Hermes RFID write tests covering valid writes and deterministic validation failures for pages outside 1-17, non-hex characters, and non-16-character payloads in AutoTest/TDKController.Tests/Unit/IDReaderHermesRFIDTests.cs
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] Implement Omron ASCII write flow and pre-send payload validation for page range 1-30, fixed 16 printable ASCII characters, and control-character rejection in TDKController/Module/IDReaderOmronASCII.cs
-- [ ] T023 [P] [US3] Implement Omron HEX write flow and pre-send payload validation for page range 1-30, fixed 16 hexadecimal characters, and deterministic invalid-parameter failures in TDKController/Module/IDReaderOmronHex.cs
-- [ ] T024 [P] [US3] Implement Hermes RFID write flow and pre-send payload validation for page range 1-17, fixed 16 hexadecimal characters, and deterministic invalid-parameter failures in TDKController/Module/IDReaderHermesRFID.cs
+- [X] T022 [P] [US3] Implement Omron ASCII write flow and pre-send payload validation for page range 1-30, fixed 16 printable ASCII characters, and control-character rejection in TDKController/Module/IDReaderOmronASCII.cs
+- [X] T023 [P] [US3] Implement Omron HEX write flow and pre-send payload validation for page range 1-30, fixed 16 hexadecimal characters, and deterministic invalid-parameter failures in TDKController/Module/IDReaderOmronHex.cs
+- [X] T024 [P] [US3] Implement Hermes RFID write flow and pre-send payload validation for page range 1-17, fixed 16 hexadecimal characters, and deterministic invalid-parameter failures in TDKController/Module/IDReaderHermesRFID.cs
 
 **Checkpoint**: Supported RFID readers can write carrier data and reject invalid payloads before device I/O begins.
 
@@ -113,12 +113,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Add overlapping-operation and no-extra-send tests in AutoTest/TDKController.Tests/Unit/CarrierIDReaderBaseTests.cs
-- [ ] T026 [P] [US4] Add reader-specific concurrency regression tests for read, write, validation-failure, and timeout release paths in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs and AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
+- [X] T025 [P] [US4] Add overlapping-operation and no-extra-send tests in AutoTest/TDKController.Tests/Unit/CarrierIDReaderBaseTests.cs
+- [X] T026 [P] [US4] Add reader-specific concurrency regression tests for read, write, validation-failure, and timeout release paths in AutoTest/TDKController.Tests/Unit/IDReaderBarcodeReaderTests.cs and AutoTest/TDKController.Tests/Unit/IDReaderOmronASCIITests.cs
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Harden busy-state acquisition and release for success, validation failure, command failure, and timeout cleanup in TDKController/Module/CarrierIDReader.cs
+- [X] T027 [US4] Harden busy-state acquisition and release for success, validation failure, command failure, and timeout cleanup in TDKController/Module/CarrierIDReader.cs
 
 **Checkpoint**: The reader base layer rejects concurrent operations and recovers cleanly after terminal outcomes.
 
@@ -128,13 +128,13 @@
 
 **Purpose**: Final validation, documentation alignment, and cross-story verification of the current 002 feature scope.
 
-- [ ] T028 [P] Add cross-story edge-case tests for connection drop mid-request, malformed or incomplete responses, repeated unreadable Barcode media, Hermes integrity failures, and configured reader type mismatch in AutoTest/TDKController.Tests/Unit/
-- [ ] T029 [P] Align quickstart examples and verification notes with the 8-attempt Barcode flow and 10-second single-wait timeout semantics in specs/002-carrier-id-reader-impl/quickstart.md
-- [ ] T030 [P] Verify XML documentation, English implementation comments, and protocol-to-spec traceability across TDKController/Interface/ and TDKController/Module/
-- [ ] T031 [P] Verify try-catch plus logging compliance and diagnostic failure logging for timeout, communication loss, invalid response, validation failure, and device rejection paths in TDKController/Module/
+- [X] T028 [P] Add cross-story edge-case tests for connection drop mid-request, malformed or incomplete responses, repeated unreadable Barcode media, Hermes integrity failures, and configured reader type mismatch in AutoTest/TDKController.Tests/Unit/
+- [X] T029 [P] Align quickstart examples and verification notes with the 8-attempt Barcode flow and 10-second single-wait timeout semantics in specs/002-carrier-id-reader-impl/quickstart.md
+- [X] T030 [P] Verify XML documentation, English implementation comments, and protocol-to-spec traceability across TDKController/Interface/ and TDKController/Module/
+- [X] T031 [P] Verify try-catch plus logging compliance and diagnostic failure logging for timeout, communication loss, invalid response, validation failure, and device rejection paths in TDKController/Module/
 - [ ] T032 Run coverage measurement for Carrier ID Reader logic from AutoTest/TDKController.Tests/TDKController.Tests.csproj and confirm the required core coverage target
-- [ ] T033 Run the Carrier ID Reader unit test suite from AutoTest/TDKController.Tests/TDKController.Tests.csproj
-- [ ] T034 Validate the documented zh-TW and en-US read and write scenarios in specs/002-carrier-id-reader-impl/quickstart.md
+- [X] T033 Run the Carrier ID Reader unit test suite from AutoTest/TDKController.Tests/TDKController.Tests.csproj
+- [X] T034 Validate the documented zh-TW and en-US read and write scenarios in specs/002-carrier-id-reader-impl/quickstart.md
 
 ---
 
