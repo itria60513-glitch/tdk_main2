@@ -10,6 +10,7 @@ namespace TDKController
     public class IDReaderHermesRFID : CarrierIDReader
     {
         private const int MaxPage = 17;
+        private HermesFrame? _lastParsedFrame;
 
         public IDReaderHermesRFID(CarrierIDReaderConfig config, IConnector connector, ILogUtility logger)
             : base(config, connector, logger)
@@ -27,6 +28,8 @@ namespace TDKController
         {
             try
             {
+                _lastParsedFrame = null;
+
                 HermesFrame frame;
                 ErrorCode parseResult = TryParseFrame(command, out frame);
                 if (parseResult != ErrorCode.Success)
@@ -34,9 +37,13 @@ namespace TDKController
                     return parseResult;
                 }
 
-                return IsSupportedResponse(frame.Message)
-                    ? ErrorCode.Success
-                    : ErrorCode.CarrierIdCommandFailed;
+                if (!IsSupportedResponse(frame.Message))
+                {
+                    return ErrorCode.CarrierIdCommandFailed;
+                }
+
+                _lastParsedFrame = frame;
+                return ErrorCode.Success;
             }
             catch (FormatException)
             {
@@ -121,7 +128,13 @@ namespace TDKController
                 return result;
             }
 
-            carrierID = ExtractReadPayload(response);
+            if (!_lastParsedFrame.HasValue || !IsReadResponse(_lastParsedFrame.Value.Message))
+            {
+                return ErrorCode.CarrierIdCommandFailed;
+            }
+
+            string info = _lastParsedFrame.Value.Message.Substring(2);
+            carrierID = info.Length > 2 ? info.Substring(2) : string.Empty;
             return string.IsNullOrEmpty(carrierID) ? ErrorCode.CarrierIdCommandFailed : ErrorCode.Success;
         }
 
@@ -146,19 +159,6 @@ namespace TDKController
             string length = message.Length.ToString("X2");
             string frameWithoutChecksums = string.Concat("S", length, message, "\r");
             return frameWithoutChecksums + ComputeChecksums(frameWithoutChecksums);
-        }
-
-        private string ExtractReadPayload(string response)
-        {
-            HermesFrame frame;
-            ErrorCode parseResult = TryParseFrame(response, out frame);
-            if (parseResult != ErrorCode.Success || !IsReadResponse(frame.Message))
-            {
-                return string.Empty;
-            }
-
-            string info = frame.Message.Substring(2);
-            return info.Length > 2 ? info.Substring(2) : string.Empty;
         }
 
         private ErrorCode TryParseFrame(string response, out HermesFrame frame)

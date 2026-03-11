@@ -153,6 +153,30 @@ namespace TDKController.Tests.Unit
             Assert.AreEqual(ErrorCode.CarrierIdError, result);
         }
 
+        [Test]
+        public void GetCarrierID_AfterDispose_ReturnsConnectFailed()
+        {
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+            reader.Dispose();
+
+            string carrierId;
+            ErrorCode result = reader.GetCarrierID(out carrierId);
+
+            Assert.AreEqual(ErrorCode.CarrierIdConnectFailed, result);
+        }
+
+        [Test]
+        public void GetCarrierID_WhenConnectThrows_ReturnsConnectFailed()
+        {
+            _connectorMock.Setup(connector => connector.Connect()).Throws(new InvalidOperationException("port busy"));
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+
+            string carrierId;
+            ErrorCode result = reader.GetCarrierID(out carrierId);
+
+            Assert.AreEqual(ErrorCode.CarrierIdConnectFailed, result);
+        }
+
         private static void RaiseResponse(Mock<IConnector> connectorMock, string response)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(response);

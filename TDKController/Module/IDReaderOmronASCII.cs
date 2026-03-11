@@ -73,7 +73,7 @@ namespace TDKController
             return normalized.Length <= 2 ? string.Empty : normalized.Substring(2);
         }
 
-        protected ErrorCode TryReadCarrierId(out string carrierID)
+        protected virtual ErrorCode TryReadCarrierId(out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -95,18 +95,18 @@ namespace TDKController
             return ErrorCode.Success;
         }
 
-        protected ErrorCode WriteCarrierId(string carrierID)
+        protected virtual ErrorCode WriteCarrierId(string carrierID)
         {
             string response;
             return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
         }
 
-        protected string BuildReadCommand(int page)
+        protected virtual string BuildReadCommand(int page)
         {
             return string.Format("0110{0}\r", BuildPageMask(page));
         }
 
-        protected string BuildWriteCommand(int page, string payload)
+        protected virtual string BuildWriteCommand(int page, string payload)
         {
             return string.Format("0210{0}{1}\r", BuildPageMask(page), payload);
         }
@@ -194,12 +194,12 @@ namespace TDKController
                 : ErrorCode.CarrierIdInvalidPage;
         }
 
-        protected ErrorCode ValidateReadRequest()
+        protected virtual ErrorCode ValidateReadRequest()
         {
             return ValidatePage(MaxPage);
         }
 
-        protected ErrorCode ValidateWriteRequest(string carrierID)
+        protected virtual ErrorCode ValidateWriteRequest(string carrierID)
         {
             return ValidateAsciiWrite(carrierID);
         }

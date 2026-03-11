@@ -51,7 +51,7 @@ namespace TDKController
             }
         }
 
-        protected new ErrorCode TryReadCarrierId(out string carrierID)
+        protected override ErrorCode TryReadCarrierId(out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -73,28 +73,28 @@ namespace TDKController
             return ErrorCode.Success;
         }
 
-        protected new ErrorCode WriteCarrierId(string carrierID)
+        protected override ErrorCode WriteCarrierId(string carrierID)
         {
             string response;
             return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
         }
 
-        protected new string BuildReadCommand(int page)
+        protected override string BuildReadCommand(int page)
         {
             return string.Format("0100{0}\r", BuildPageMask(page));
         }
 
-        protected new string BuildWriteCommand(int page, string payload)
+        protected override string BuildWriteCommand(int page, string payload)
         {
             return string.Format("0200{0}{1}\r", BuildPageMask(page), payload.ToUpperInvariant());
         }
 
-        protected new ErrorCode ValidateReadRequest()
+        protected override ErrorCode ValidateReadRequest()
         {
             return ValidatePage(MaxPage);
         }
 
-        protected new ErrorCode ValidateWriteRequest(string carrierID)
+        protected override ErrorCode ValidateWriteRequest(string carrierID)
         {
             ErrorCode pageResult = ValidatePage(MaxPage);
             if (pageResult != ErrorCode.Success)

@@ -167,6 +167,7 @@ namespace TDKController
                 byte[] commandBytes = Encoding.ASCII.GetBytes(command);
                 _connector.Send(commandBytes, commandBytes.Length);
 
+                // Fall back to Config.TimeoutMs when caller passes 0 (use default timeout)
                 if (!_responseSignal.Wait(timeoutMs > 0 ? timeoutMs : Config.TimeoutMs))
                 {
                     _logger.WriteLog(LogKey, LogHeadType.Error, string.Format("SendCommand: timeout waiting for response to {0}", command.Trim()));
@@ -197,6 +198,7 @@ namespace TDKController
         protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, string validationErrorMessage, ReadOperation readOperation, out string carrierID)
         {
             carrierID = string.Empty;
+            bool connected = false;
 
             ErrorCode busyResult = AcquireBusy();
             if (busyResult != ErrorCode.Success)
@@ -223,17 +225,20 @@ namespace TDKController
                     return connectResult;
                 }
 
+                connected = true;
                 return readOperation(out carrierID);
             }
             finally
             {
-                DisconnectReader();
+                if (connected) DisconnectReader();
                 ReleaseBusy();
             }
         }
 
         protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, string validationErrorMessage, Func<string, ErrorCode> writeOperation)
         {
+            bool connected = false;
+
             ErrorCode busyResult = AcquireBusy();
             if (busyResult != ErrorCode.Success)
             {
@@ -259,11 +264,12 @@ namespace TDKController
                     return connectResult;
                 }
 
+                connected = true;
                 return writeOperation(carrierID);
             }
             finally
             {
-                DisconnectReader();
+                if (connected) DisconnectReader();
                 ReleaseBusy();
             }
         }

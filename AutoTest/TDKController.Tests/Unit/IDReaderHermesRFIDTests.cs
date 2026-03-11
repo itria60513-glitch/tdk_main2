@@ -110,6 +110,20 @@ namespace TDKController.Tests.Unit
             Assert.AreEqual(ErrorCode.CarrierIdInvalidParameter, result);
         }
 
+        [Test]
+        public void SetCarrierID_WhenDeviceReturnsUnsupportedResponse_ReturnsCarrierIdCommandFailed()
+        {
+            var reader = new IDReaderHermesRFID(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, BuildFrame("z0")))
+                .Returns((HRESULT)null);
+
+            ErrorCode result = reader.SetCarrierID("4142434445463031");
+
+            Assert.AreEqual(ErrorCode.CarrierIdCommandFailed, result);
+        }
+
         private static void RaiseResponse(Mock<IConnector> connectorMock, string response)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(response);

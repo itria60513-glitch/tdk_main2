@@ -180,6 +180,35 @@ namespace TDKController.Tests.Unit
             Assert.AreEqual(ErrorCode.Success, firstTask.Result);
         }
 
+        [Test]
+        public void SetCarrierID_WhenSecondCallOverlaps_ReturnsCarrierIdBusy()
+        {
+            var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+            var firstSendStarted = new ManualResetEventSlim(false);
+
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    firstSendStarted.Set();
+                    ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        Thread.Sleep(40);
+                        RaiseResponse(connectorMock, "00\r");
+                    });
+                })
+                .Returns((HRESULT)null);
+
+            Task<ErrorCode> firstTask = Task.Run(() => reader.SetCarrierID("CARRIERDATA0001X"));
+
+            Assert.IsTrue(firstSendStarted.Wait(500));
+
+            ErrorCode secondResult = reader.SetCarrierID("CARRIERDATA0002Y");
+
+            Assert.AreEqual(ErrorCode.CarrierIdBusy, secondResult);
+            Assert.AreEqual(ErrorCode.Success, firstTask.Result);
+        }
+
         private static void RaiseResponse(Mock<IConnector> connectorMock, string response)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(response);

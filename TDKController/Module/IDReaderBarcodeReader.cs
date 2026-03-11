@@ -70,7 +70,7 @@ namespace TDKController
         /// <summary>
         /// Sends the BL600 MOTORON command and waits for the OK acknowledgement.
         /// </summary>
-        public ErrorCode MotorON()
+        private ErrorCode MotorON()
         {
             try
             {
@@ -86,7 +86,7 @@ namespace TDKController
         /// <summary>
         /// Sends the BL600 read trigger and returns the raw barcode response.
         /// </summary>
-        public ErrorCode ReadBarCode(out string barcode)
+        private ErrorCode ReadBarCode(out string barcode)
         {
             barcode = string.Empty;
 
@@ -104,7 +104,7 @@ namespace TDKController
         /// <summary>
         /// Sends the BL600 MOTOROFF command and waits for the OK acknowledgement.
         /// </summary>
-        public ErrorCode MotorOFF()
+        private ErrorCode MotorOFF()
         {
             try
             {
