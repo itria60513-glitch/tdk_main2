@@ -37,7 +37,7 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderHermesRFID(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
-                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, BuildFrame("x4142434445463031")))
+                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, BuildFrame("x0014142434445463031")))
                 .Returns((HRESULT)null);
 
             string carrierId;
@@ -53,7 +53,7 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderHermesRFID(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
-                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, "S03xAB\r0000"))
+                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, CorruptChecksum(BuildFrame("x0014142434445463031"))))
                 .Returns((HRESULT)null);
 
             string carrierId;
@@ -92,7 +92,7 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderHermesRFID(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
-                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, BuildFrame("w")))
+                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, BuildFrame("w0")))
                 .Returns((HRESULT)null);
 
             ErrorCode result = reader.SetCarrierID("4142434445463031");
@@ -129,6 +129,11 @@ namespace TDKController.Tests.Unit
             }
 
             return body + string.Format("{0:X2}{1:X2}", xorValue & 0xFF, addValue & 0xFF);
+        }
+
+        private static string CorruptChecksum(string frame)
+        {
+            return frame.Substring(0, frame.Length - 4) + "0000";
         }
     }
 }

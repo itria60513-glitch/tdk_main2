@@ -160,6 +160,37 @@ namespace TDKController.Tests.Unit
             Assert.IsTrue(disconnectCalled);
         }
 
+        [Test]
+        public void GetCarrierID_WhenBarcodeReturnsError_StopsRetryAndReturnsCommandFailed()
+        {
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+            int readAttempts = 0;
+
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    string command = Encoding.ASCII.GetString(buffer, 0, length);
+                    if (command == "MOTORON\r" || command == "MOTOROFF\r")
+                    {
+                        RaiseResponse(connectorMock, "OK\r");
+                    }
+                    else if (command == "LON\r")
+                    {
+                        readAttempts++;
+                        RaiseResponse(connectorMock, "ERROR\r");
+                    }
+                })
+                .Returns((HRESULT)null);
+
+            string carrierId;
+            ErrorCode result = reader.GetCarrierID(out carrierId);
+
+            Assert.AreEqual(ErrorCode.CarrierIdCommandFailed, result);
+            Assert.AreEqual(1, readAttempts);
+            Assert.IsEmpty(carrierId);
+        }
+
         private static void RaiseResponse(Mock<IConnector> connectorMock, string response)
         {
             byte[] bytes = Encoding.ASCII.GetBytes(response);

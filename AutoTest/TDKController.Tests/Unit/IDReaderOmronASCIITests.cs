@@ -38,9 +38,14 @@ namespace TDKController.Tests.Unit
         {
             var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
+            string sentCommand = null;
 
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
-                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, "00LOT123456789012\r"))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    sentCommand = Encoding.ASCII.GetString(buffer, 0, length);
+                    RaiseResponse(connectorMock, "00LOT123456789012\r");
+                })
                 .Returns((HRESULT)null);
 
             string carrierId;
@@ -48,6 +53,30 @@ namespace TDKController.Tests.Unit
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("LOT123456789012", carrierId);
+            Assert.AreEqual("01100000000C\r", sentCommand);
+        }
+
+        [Test]
+        public void GetCarrierID_WhenAsciiPageIsSix_UsesLegacyDualPageMask()
+        {
+            _config.Page = 6;
+            var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+            string sentCommand = null;
+
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    sentCommand = Encoding.ASCII.GetString(buffer, 0, length);
+                    RaiseResponse(connectorMock, "00LOT123456789012\r");
+                })
+                .Returns((HRESULT)null);
+
+            string carrierId;
+            ErrorCode result = reader.GetCarrierID(out carrierId);
+
+            Assert.AreEqual(ErrorCode.Success, result);
+            Assert.AreEqual("011000000180\r", sentCommand);
         }
 
         [Test]

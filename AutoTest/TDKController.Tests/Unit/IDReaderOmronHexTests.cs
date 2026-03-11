@@ -36,8 +36,13 @@ namespace TDKController.Tests.Unit
         {
             var reader = new IDReaderOmronHex(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
+            string sentCommand = null;
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
-                .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, "004142434431323334\r"))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    sentCommand = Encoding.ASCII.GetString(buffer, 0, length);
+                    RaiseResponse(connectorMock, "004142434431323334\r");
+                })
                 .Returns((HRESULT)null);
 
             string carrierId;
@@ -45,6 +50,7 @@ namespace TDKController.Tests.Unit
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("ABCD1234", carrierId);
+            Assert.AreEqual("010000000004\r", sentCommand);
         }
 
         [Test]

@@ -1,5 +1,4 @@
 using System;
-using System.Text;
 using Communication.Interface;
 using TDKLogUtility.Module;
 
@@ -17,8 +16,6 @@ namespace TDKController
         private const string CommandMotorOff = "MOTOROFF\r";
         private const string CommandRead = "LON\r";
         private const string CommandStop = "LOFF\r";
-
-        private bool _waitingReadResult;
 
         public IDReaderBarcodeReader(CarrierIDReaderConfig config, IConnector connector, ILogUtility logger)
             : base(config, connector, logger)
@@ -91,7 +88,6 @@ namespace TDKController
 
             try
             {
-                _waitingReadResult = true;
                 string response;
                 ErrorCode result = SendCommand(CommandRead, ReadTimeoutMs, out response);
                 if (result == ErrorCode.CarrierIdTimeout)
@@ -115,10 +111,6 @@ namespace TDKController
             {
                 _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("ReadBarCode: exception - {0}", ex.Message));
                 throw;
-            }
-            finally
-            {
-                _waitingReadResult = false;
             }
         }
 
@@ -233,35 +225,5 @@ namespace TDKController
             }
         }
 
-        protected override void OnDataReceived(byte[] byData, int length)
-        {
-            try
-            {
-                if (byData == null || length <= 0)
-                {
-                    return;
-                }
-
-                string response = Encoding.ASCII.GetString(byData, 0, length);
-                string normalized = TrimResponse(response);
-
-                if (!_waitingReadResult && string.Equals(normalized, "OK", StringComparison.OrdinalIgnoreCase))
-                {
-                    LastResponse = response;
-                    _responseSignal.Set();
-                    return;
-                }
-
-                if (_waitingReadResult)
-                {
-                    LastResponse = response;
-                    _responseSignal.Set();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("OnDataReceived: exception - {0}", ex.Message));
-            }
-        }
     }
 }
