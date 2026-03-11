@@ -7,35 +7,36 @@
 
 ## User Scenarios & Testing *(mandatory)*
 
-### User Story 1 - Read Carrier ID from any supported device (Priority: P1)
+### User Story 1 - Read Carrier ID from the configured barcode reader (Priority: P1)
 
-As an equipment controller, I need to read a carrier identifier from the configured device type so that the system can identify the carrier before the next handling step begins.
+As an equipment controller, I need to read a carrier identifier from a Keyence barcode reader so that the system can perform carrier identification through the first and most common device type, establishing the end-to-end read workflow.
 
-**Why this priority**: Carrier identification is a prerequisite for downstream routing, validation, and traceability. If the read fails, the equipment cannot continue safely.
+**Why this priority**: Carrier identification is a prerequisite for downstream routing, validation, and traceability. The barcode reader is the most commonly deployed device type and serves as the MVP read path.
 
-**Independent Test**: Configure each supported reader type one at a time, trigger a read request with valid carrier media present, and confirm that the controller returns a usable carrier identifier and a success result.
+**Independent Test**: Configure the barcode reader, trigger a read request with valid carrier media present, and confirm that the controller returns a usable carrier identifier and a success result. Also verify unreadable media and timeout scenarios.
 
 **Acceptance Scenarios**:
 
-1. **Given** the controller is configured for a supported reader type and valid carrier media is present, **When** a read is requested, **Then** the system returns the carrier identifier and reports success.
-2. **Given** the controller is configured for a supported reader type but the carrier media cannot be read, **When** a read is requested, **Then** the system reports a read failure without returning an invalid identifier.
-3. **Given** the configured reader does not respond within the allowed time, **When** a read is requested, **Then** the system ends the request and reports a timeout failure.
+1. **Given** the controller is configured for the barcode reader and valid carrier media is present, **When** a read is requested, **Then** the system returns the carrier identifier and reports success.
+2. **Given** the controller is configured for the barcode reader but the carrier media cannot be read, **When** a read is requested, **Then** the system reports a read failure after exhausting retries without returning an invalid identifier.
+3. **Given** the barcode reader does not respond within the allowed time, **When** a read is requested, **Then** the system ends the request and reports a timeout failure.
 
 ---
 
-### User Story 2 - Support the full set of reader protocols already used in the field (Priority: P1)
+### User Story 2 - Extend carrier identification to Omron and Hermes RFID protocols (Priority: P1)
 
-As a deployment engineer, I need the controller to support barcode, Omron ASCII RFID, Omron HEX RFID, and Hermes RFID readers so that existing site hardware can be reused without changing the controller contract.
+As a deployment engineer, I need the controller to extend the same carrier-read contract to Omron ASCII RFID, Omron HEX RFID, and Hermes RFID readers so that existing site hardware can be reused without changing the caller interface.
 
-**Why this priority**: Multi-device compatibility is required to install the same controller in environments that use different carrier identification hardware.
+**Why this priority**: Multi-device compatibility is required to install the same controller in environments that use different carrier identification hardware. US1 delivers the barcode path; this story extends coverage to all RFID variants.
 
-**Independent Test**: For each supported reader type, execute the same carrier-read workflow and confirm that the controller behavior is consistent from the caller perspective even though the device protocol differs.
+**Independent Test**: For Omron ASCII, Omron HEX, and Hermes RFID, execute the same carrier-read workflow and confirm that the controller behavior is consistent from the caller perspective even though the device protocol differs.
 
 **Acceptance Scenarios**:
 
-1. **Given** the system is configured for a barcode reader, **When** a carrier read is requested, **Then** the controller completes the barcode-specific workflow and returns the result in the standard carrier-read format.
-2. **Given** the system is configured for an Omron ASCII or Omron HEX RFID reader, **When** a carrier read is requested, **Then** the controller completes the reader-specific workflow and returns the result in the standard carrier-read format.
+1. **Given** the system is configured for an Omron ASCII RFID reader, **When** a carrier read is requested, **Then** the controller completes the Omron ASCII workflow and returns the result in the standard carrier-read format.
+2. **Given** the system is configured for an Omron HEX RFID reader, **When** a carrier read is requested, **Then** the controller completes the Omron HEX workflow and returns the result in the standard carrier-read format.
 3. **Given** the system is configured for a Hermes RFID reader, **When** a carrier read is requested, **Then** the controller completes the Hermes-specific workflow and returns the result in the standard carrier-read format.
+4. **Given** any supported RFID reader does not respond within the allowed time, **When** a read is requested, **Then** the system ends the request and reports a timeout failure.
 
 ---
 
@@ -83,7 +84,7 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - **FR-001**: The system MUST support carrier identification through four reader types: barcode reader, Omron ASCII RFID reader, Omron HEX RFID reader, and Hermes RFID reader.
 - **FR-002**: The system MUST expose a consistent carrier-read interaction to its callers regardless of which supported reader type is configured.
 - **FR-003**: The system MUST execute the protocol-specific read sequence required by the configured reader type before returning a carrier identifier.
-- **FR-004**: The system MUST return a success result only when the configured reader type completes its read sequence and produces a valid carrier identifier.
+- **FR-004**: The system MUST return a success result only when the configured reader type completes its read sequence and produces a valid carrier identifier (non-null, non-empty ASCII string).
 - **FR-005**: The system MUST report a failure result when a device does not respond, returns unreadable data, returns invalid data, or rejects the requested operation.
 - **FR-006**: The barcode reader workflow MUST retry read attempts up to a maximum of 3 times when the device reports an unreadable result, and MUST stop retrying once a valid identifier is read or the retry limit is reached.
 - **FR-007**: The barcode reader workflow MUST leave the reader in a safe end state after each request, regardless of whether the request succeeds or fails. The safe end state is defined as: trigger off (stop scanning) and disconnect the communication session.
@@ -95,6 +96,8 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - **FR-013**: The system MUST enforce a default 10-second response time limit for device operations and return a timeout failure when that limit is exceeded.
 - **FR-014**: The system MUST record sufficient operational diagnostics for successful operations and failures so that device communication problems can be investigated.
 - **FR-015**: The system MUST parse device responses into an ASCII string carrier identifier before returning the result. For readers that return HEX-encoded data (e.g., Omron HEX), the reader implementation MUST convert the raw bytes to their ASCII string representation internally.
+- **FR-016**: The system MUST validate the write payload against the configured RFID reader type before sending any write command.
+- **FR-017**: The system MUST reject an RFID write request with a deterministic validation failure when the payload violates the configured reader type's supported encoding, length, or format constraints.
 
 ### Key Entities *(include if feature involves data)*
 
@@ -113,12 +116,20 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - Q: 載體 ID 返回給呼叫者時應統一為何種格式？ → A: ASCII 字串 (string)，HEX 資料在讀取器內部轉為 ASCII 表示
 - Q: Barcode reader 的「安全結束狀態」具體指什麼？ → A: 關閉觸發 (trigger off) 並斷開連線
 
+### Session 2026-03-11
+
+- Q: 是否允許為 CarrierIDReader 功能新增獨立測試檔？ → A: 允許，於 `AutoTest/TDKController.Tests/Unit/` 新增 5 個測試檔（1 個基底類別 + 4 個具體讀取器），並將此批准記錄於規格與計畫文件。
+- Q: 若 `ICarrierIDReader` 現有成員不足，是否允許修改？ → A: 允許，但僅限使用者批准前提下補足本功能必要成員，且必須在計畫與任務文件中記錄這項限制。
+- Q: RFID 寫入 payload 限制暫未定值時應如何規範？ → A: 先定義 validation requirement；具體限制值與裝置格式細節後續依 legacy logic 與 PlantUML 補齊。
+
 ## Assumptions
 
 - The supported reader types and their expected behaviors are defined by the provided PlantUML diagrams and legacy reference logic.
 - Existing controller infrastructure already provides the communication path and logging facilities needed for reader operations.
 - Caller-facing behavior should remain consistent even when the internal reader protocol differs.
 - Only the four reader types named in the request are in scope for this feature.
+- The bilingual quickstart requirement is satisfied by a single `quickstart.md` file that contains both zh-TW and en-US sections.
+- Until protocol-specific limits are confirmed from legacy references, RFID payload validation will enforce reader-type-specific encoding, length, and format rules without hardcoding undocumented numeric limits in this specification.
 
 ## Success Criteria *(mandatory)*
 

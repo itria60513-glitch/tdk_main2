@@ -5,7 +5,7 @@
 
 ## 摘要
 
-實作 TDKController 中的 CarrierID Reader 模組，支援四種讀取器類型（Barcode BL600、Omron ASCII RFID、Omron HEX RFID、Hermes RFID），以繼承架構設計提供統一的 `ICarrierIDReader` 介面。基底類別 `CarrierIDReader` 實作共用邏輯（組態、通訊、日誌、並行保護），四個子類別各自實作設備專屬的協定流程。讀取結果統一回傳 ASCII 字串，錯誤碼使用 -300 ~ -399 範圍。
+實作 TDKController 中的 CarrierID Reader 模組，支援四種讀取器類型（Barcode BL600、Omron ASCII RFID、Omron HEX RFID、Hermes RFID），以繼承架構設計提供統一的 `ICarrierIDReader` 介面。基底類別 `CarrierIDReader` 實作共用邏輯（組態、通訊、日誌、並行保護），四個子類別各自實作設備專屬的協定流程。讀取結果統一回傳 ASCII 字串，RFID 寫入流程需先執行 payload validation，錯誤碼使用 -300 ~ -399 範圍。
 
 ## 技術脈絡
 
@@ -38,9 +38,9 @@
 | XML 文件註解 | ✅ PASS | 公開 API 必含 XML 文件 |
 | 程式碼實作註解 | ✅ PASS | 所有實作區塊含英文行內註解 |
 | 測試標準 (NUnit + Moq) | ✅ PASS | 單元測試模擬 IConnector 與 ILogUtility |
-| 介面使用政策 | ✅ PASS | 重用現有 IConnector；不修改參考介面 |
+| 介面使用政策 | ✅ PASS | 重用現有 IConnector；`ICarrierIDReader` 僅能在使用者批准前提下補足本功能必要成員 |
 | YAGNI | ✅ PASS | 僅實作 spec 中要求的功能 |
-| 檔案建立政策 | ✅ PASS | 使用者已明確要求建立 4 個子類別檔案 |
+| 檔案建立政策 | ✅ PASS | 使用者已明確要求建立 4 個子類別檔案；5 個測試檔案已於 2026-03-11 經使用者批准建立，並記錄於 spec Clarifications |
 | 實作輸出限制 | ✅ PASS | 不使用 speckit task 分類作為程式碼註解 |
 
 **GATE 結果**: ✅ 全部通過，無違規項目。
@@ -55,7 +55,7 @@ specs/002-carrier-id-reader-impl/
 ├── plan.md              # 本檔案
 ├── research.md          # Phase 0 輸出
 ├── data-model.md        # Phase 1 輸出
-├── quickstart.md        # Phase 1 輸出
+├── quickstart.md        # Phase 1 輸出（單檔包含 zh-TW 與 en-US 章節）
 ├── contracts/           # Phase 1 輸出
 └── tasks.md             # Phase 2 輸出（/speckit.tasks）
 ```
@@ -65,7 +65,7 @@ specs/002-carrier-id-reader-impl/
 ```text
 TDKController/
 ├── Interface/
-│   ├── ICarrierIDReader.cs          # 介面定義（已存在，待填充）
+│   ├── ICarrierIDReader.cs          # 介面定義（已存在，僅能在使用者批准下補足必要成員）
 │   └── ErrorCode.cs                 # 錯誤碼列舉（已存在，需新增 -300 系列）
 ├── Config/
 │   └── CarrierIDReaderConfig.cs     # 組態類別（已存在，待填充）
@@ -86,7 +86,13 @@ AutoTest/
         └── IDReaderHermesRFIDTests.cs        # HermesRFID 測試
 ```
 
-**結構決策**: 遵循既有 TDKController 標準模組結構（Interface/ + Config/ + Module/）。子類別檔案放在 Module/ 目錄下，與使用者要求一致。不建立 `CarrierIDReader/` 子目錄分支（已存在但為空白佔位，改用 Module/ 統一管理）。
+**結構決策**: 遵循既有 TDKController 標準模組結構（Interface/ + Config/ + Module/）。子類別檔案放在 Module/ 目錄下，與使用者要求一致。不建立 `CarrierIDReader/` 子目錄分支（已存在但為空白佔位，改用 Module/ 統一管理）。使用指南維持單一 `quickstart.md`，以雙語章節滿足憲章要求。
+
+**補充決策**:
+
+- `ICarrierIDReader` 若需補足本功能必要成員，必須以使用者批准為前提；`IConnector` 與 `HRESULT` 仍屬唯讀參考介面，不在可修改範圍內。
+- 所有公開 API XML 文件、英文行內註解、以及協定流程對規格/legacy reference 的對應說明，必須在實作完成前由明確任務驗收。
+- RFID 寫入流程先依讀取器類型執行 payload validation；具體數值上限待 legacy logic 與 PlantUML 確認後再補充至後續文件。
 
 ## 複雜度追蹤
 
