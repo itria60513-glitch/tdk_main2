@@ -120,53 +120,37 @@ namespace TDKController
         /// <inheritdoc />
         public override ErrorCode GetCarrierID(out string carrierID)
         {
-            carrierID = string.Empty;
-
             try
             {
-                ErrorCode busyResult = AcquireBusy();
-                if (busyResult != ErrorCode.Success)
-                {
-                    return busyResult;
-                }
-
-                try
-                {
-                    ErrorCode connectResult = ConnectReader();
-                    if (connectResult != ErrorCode.Success)
-                    {
-                        return connectResult;
-                    }
-
-                    ErrorCode motorOnResult = MotorON();
-                    if (motorOnResult != ErrorCode.Success)
-                    {
-                        _logger.WriteLog("CarrierIDReader", LogHeadType.Error, "GetCarrierID: MOTORON failed");
-                        return motorOnResult;
-                    }
-
-                    ErrorCode result = TryReadCarrierId(out carrierID);
-
-                    ErrorCode motorOffResult = MotorOFF();
-                    if (motorOffResult != ErrorCode.Success)
-                    {
-                        _logger.WriteLog("CarrierIDReader", LogHeadType.Error, "GetCarrierID: MOTOROFF failed");
-                        return result == ErrorCode.Success ? ErrorCode.CarrierIdMotorOffFailed : result;
-                    }
-
-                    return result;
-                }
-                finally
-                {
-                    DisconnectReader();
-                    ReleaseBusy();
-                }
+                return ExecuteRead(PerformBarcodeRead, out carrierID);
             }
             catch (Exception ex)
             {
                 _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID: exception - {0}", ex.Message));
                 throw;
             }
+        }
+
+        private ErrorCode PerformBarcodeRead(out string carrierID)
+        {
+            carrierID = string.Empty;
+
+            ErrorCode motorOnResult = MotorON();
+            if (motorOnResult != ErrorCode.Success)
+            {
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Error, "GetCarrierID: MOTORON failed");
+                return motorOnResult;
+            }
+
+            ErrorCode result = TryReadCarrierId(out carrierID);
+            ErrorCode motorOffResult = MotorOFF();
+            if (motorOffResult != ErrorCode.Success)
+            {
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Error, "GetCarrierID: MOTOROFF failed");
+                return result == ErrorCode.Success ? ErrorCode.CarrierIdMotorOffFailed : result;
+            }
+
+            return result;
         }
 
         private ErrorCode SendAckCommand(string command, int timeoutMs, ErrorCode failureCode)

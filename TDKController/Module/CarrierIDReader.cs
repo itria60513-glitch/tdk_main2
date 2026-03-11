@@ -14,6 +14,8 @@ namespace TDKController
     {
         private const string LogKey = "CarrierIDReader";
 
+        protected delegate ErrorCode ReadOperation(out string carrierID);
+
         private IConnector _connector;
         private int _busyFlag;
         private int _disposed;
@@ -184,6 +186,85 @@ namespace TDKController
             {
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("SendCommand: exception - {0}", ex.Message));
                 throw;
+            }
+        }
+
+        protected ErrorCode ExecuteRead(ReadOperation readOperation, out string carrierID)
+        {
+            return ExecuteRead(null, null, readOperation, out carrierID);
+        }
+
+        protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, string validationErrorMessage, ReadOperation readOperation, out string carrierID)
+        {
+            carrierID = string.Empty;
+
+            ErrorCode busyResult = AcquireBusy();
+            if (busyResult != ErrorCode.Success)
+            {
+                return busyResult;
+            }
+
+            try
+            {
+                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation();
+                if (validationResult != ErrorCode.Success)
+                {
+                    if (!string.IsNullOrEmpty(validationErrorMessage))
+                    {
+                        _logger.WriteLog(LogKey, LogHeadType.Error, validationErrorMessage);
+                    }
+
+                    return validationResult;
+                }
+
+                ErrorCode connectResult = ConnectReader();
+                if (connectResult != ErrorCode.Success)
+                {
+                    return connectResult;
+                }
+
+                return readOperation(out carrierID);
+            }
+            finally
+            {
+                DisconnectReader();
+                ReleaseBusy();
+            }
+        }
+
+        protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, string validationErrorMessage, Func<string, ErrorCode> writeOperation)
+        {
+            ErrorCode busyResult = AcquireBusy();
+            if (busyResult != ErrorCode.Success)
+            {
+                return busyResult;
+            }
+
+            try
+            {
+                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation(carrierID);
+                if (validationResult != ErrorCode.Success)
+                {
+                    if (!string.IsNullOrEmpty(validationErrorMessage))
+                    {
+                        _logger.WriteLog(LogKey, LogHeadType.Error, validationErrorMessage);
+                    }
+
+                    return validationResult;
+                }
+
+                ErrorCode connectResult = ConnectReader();
+                if (connectResult != ErrorCode.Success)
+                {
+                    return connectResult;
+                }
+
+                return writeOperation(carrierID);
+            }
+            finally
+            {
+                DisconnectReader();
+                ReleaseBusy();
             }
         }
 

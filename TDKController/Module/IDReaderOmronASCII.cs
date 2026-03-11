@@ -42,38 +42,9 @@ namespace TDKController
         /// <inheritdoc />
         public override ErrorCode GetCarrierID(out string carrierID)
         {
-            carrierID = string.Empty;
-
             try
             {
-                ErrorCode busyResult = AcquireBusy();
-                if (busyResult != ErrorCode.Success)
-                {
-                    return busyResult;
-                }
-
-                try
-                {
-                    ErrorCode validationResult = ValidateReadRequest();
-                    if (validationResult != ErrorCode.Success)
-                    {
-                        _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: invalid Omron ASCII page {0}", Config.Page));
-                        return validationResult;
-                    }
-
-                    ErrorCode connectResult = ConnectReader();
-                    if (connectResult != ErrorCode.Success)
-                    {
-                        return connectResult;
-                    }
-
-                    return TryReadCarrierId(out carrierID);
-                }
-                finally
-                {
-                    DisconnectReader();
-                    ReleaseBusy();
-                }
+                return ExecuteRead(ValidateReadRequest, string.Format("GetCarrierID: invalid Omron ASCII page {0}", Config.Page), TryReadCarrierId, out carrierID);
             }
             catch (Exception ex)
             {
@@ -87,34 +58,7 @@ namespace TDKController
         {
             try
             {
-                ErrorCode busyResult = AcquireBusy();
-                if (busyResult != ErrorCode.Success)
-                {
-                    return busyResult;
-                }
-
-                try
-                {
-                    ErrorCode validationResult = ValidateWriteRequest(carrierID);
-                    if (validationResult != ErrorCode.Success)
-                    {
-                        _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", Config.Page));
-                        return validationResult;
-                    }
-
-                    ErrorCode connectResult = ConnectReader();
-                    if (connectResult != ErrorCode.Success)
-                    {
-                        return connectResult;
-                    }
-
-                    return WriteCarrierId(carrierID);
-                }
-                finally
-                {
-                    DisconnectReader();
-                    ReleaseBusy();
-                }
+                return ExecuteWrite(carrierID, ValidateWriteRequest, string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", Config.Page), WriteCarrierId);
             }
             catch (Exception ex)
             {
