@@ -18,7 +18,7 @@ As an equipment controller, I need to read a carrier identifier from a Keyence b
 **Acceptance Scenarios**:
 
 1. **Given** the controller is configured for the barcode reader and valid carrier media is present, **When** a read is requested, **Then** the system returns the carrier identifier and reports success.
-2. **Given** the controller is configured for the barcode reader but the carrier media cannot be read, **When** a read is requested, **Then** the system reports a read failure after exhausting retries without returning an invalid identifier.
+2. **Given** the controller is configured for the barcode reader but the carrier media cannot be read, **When** a read is requested, **Then** the system reports a read failure after exhausting up to 8 read attempts without returning an invalid identifier.
 3. **Given** the barcode reader does not respond within the allowed time, **When** a read is requested, **Then** the system ends the request and reports a timeout failure.
 
 ---
@@ -86,7 +86,7 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - **FR-003**: The system MUST execute the protocol-specific read sequence required by the configured reader type before returning a carrier identifier.
 - **FR-004**: The system MUST return a success result only when the configured reader type completes its read sequence and produces a valid carrier identifier (non-null, non-empty ASCII string).
 - **FR-005**: The system MUST report a failure result when a device does not respond, returns unreadable data, returns invalid data, or rejects the requested operation.
-- **FR-006**: The barcode reader workflow MUST retry read attempts up to a maximum of 3 times when the device reports an unreadable result, and MUST stop retrying once a valid identifier is read or the retry limit is reached.
+- **FR-006**: The barcode reader workflow MUST perform up to 8 read attempts per request, following the legacy BL600 flow, and MUST stop retrying once a valid identifier is read or the attempt limit is reached.
 - **FR-007**: The barcode reader workflow MUST leave the reader in a safe end state after each request, regardless of whether the request succeeds or fails. The safe end state is defined as: trigger off (stop scanning) and disconnect the communication session.
 - **FR-008**: The Omron ASCII RFID workflow MUST read carrier data using the ASCII-oriented device behavior defined by the reference flow.
 - **FR-009**: The Omron HEX RFID workflow MUST read carrier data using the HEX-oriented device behavior defined by the reference flow.
@@ -112,7 +112,7 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 
 - Q: 設備操作的預設逾時值應為多少？ → A: 10 秒 (保守值，容許較慢的 RFID 裝置)
 - Q: 哪些讀取器類型需要支援寫入操作？ → A: Omron ASCII、Omron HEX、Hermes RFID（全部 RFID 類型）
-- Q: Barcode reader 讀取失敗時的最大重試次數應為多少？ → A: 3 次
+- Q: Barcode reader 讀取失敗時的最大重試次數應為多少？ → A: 8 次，並依 lp204.cc 的 BL600 流程在讀取完成前持續嘗試，直到成功或達到上限。
 - Q: 載體 ID 返回給呼叫者時應統一為何種格式？ → A: ASCII 字串 (string)，HEX 資料在讀取器內部轉為 ASCII 表示
 - Q: Barcode reader 的「安全結束狀態」具體指什麼？ → A: 關閉觸發 (trigger off) 並斷開連線
 
@@ -121,6 +121,8 @@ As an equipment controller, I need the reader workflow to reject overlapping com
 - Q: 是否允許為 CarrierIDReader 功能新增獨立測試檔？ → A: 允許，於 `AutoTest/TDKController.Tests/Unit/` 新增 5 個測試檔（1 個基底類別 + 4 個具體讀取器），並將此批准記錄於規格與計畫文件。
 - Q: 若 `ICarrierIDReader` 現有成員不足，是否允許修改？ → A: 允許，但僅限使用者批准前提下補足本功能必要成員，且必須在計畫與任務文件中記錄這項限制。
 - Q: RFID 寫入 payload 限制暫未定值時應如何規範？ → A: 先定義 validation requirement；具體限制值與裝置格式細節後續依 legacy logic 與 PlantUML 補齊。
+- Q: 10 秒逾時限制應如何套用於重試與協定階段？ → A: 10 秒為單次裝置等待階段的預設逾時值；Barcode reader 的每次重試皆可各自使用一次 10 秒逾時，不與前一次重試共享預算；各協定可使用較短的內部等待階段，但單一等待階段不得超過 10 秒。
+- Q: 在具體裝置限制值尚未完全回填前，RFID 寫入 payload validation 的最小落地規則為何？ → A: 採最小可實作規則：Omron ASCII 僅接受頁碼 1–30、長度固定 16 字元、且內容必須為可列印 ASCII 並排除控制字元；Omron HEX 僅接受頁碼 1–30、長度固定 16 字元、且內容必須為十六進位字元；Hermes RFID 僅接受頁碼 1–17、長度固定 16 字元、且內容必須為十六進位字元。凡不符合上述規則者，皆視為 invalid payload，必須在送出裝置命令前回傳 deterministic validation failure。
 
 ## Assumptions
 
