@@ -97,6 +97,8 @@ namespace TDKController
             get { return _connector; }
             set
             {
+                ThrowIfDisposed();
+
                 // Step 1: Detach from the previous connector to avoid stale event subscriptions.
                 if (_connector != null)
                 {
@@ -136,6 +138,8 @@ namespace TDKController
         {
             try
             {
+                ThrowIfDisposed();
+
                 // Base implementation does not support writing; return error.
                 return ErrorCode.CarrierIdError;
             }
@@ -157,10 +161,29 @@ namespace TDKController
         /// </summary>
         public void Dispose()
         {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases managed resources owned by this instance.
+        /// The disposed flag is updated atomically to prevent duplicate cleanup.
+        /// </summary>
+        /// <param name="disposing">
+        /// True when called from <see cref="Dispose()"/>; false when called from a finalizer.
+        /// This type currently owns only managed resources, but the overload keeps the pattern extensible.
+        /// </param>
+        protected virtual void Dispose(bool disposing)
+        {
             try
             {
                 // Step 1: Atomically check and set the disposed flag to prevent double disposal.
                 if (Interlocked.Exchange(ref _disposed, 1) != 0)
+                {
+                    return;
+                }
+
+                if (!disposing)
                 {
                     return;
                 }
@@ -217,6 +240,8 @@ namespace TDKController
         {
             try
             {
+                ThrowIfDisposed();
+
                 // Step 1: Guard against null connector.
                 if (_connector == null)
                 {
@@ -273,6 +298,8 @@ namespace TDKController
 
             try
             {
+                ThrowIfDisposed();
+
                 // Step 1a: Validate command is not empty.
                 if (string.IsNullOrWhiteSpace(command))
                 {
@@ -351,6 +378,8 @@ namespace TDKController
         /// </summary>
         protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, string validationErrorMessage, ReadOperation readOperation, out string carrierID)
         {
+            ThrowIfDisposed();
+
             carrierID = string.Empty;
             bool connected = false;
 
@@ -410,6 +439,8 @@ namespace TDKController
         /// </summary>
         protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, string validationErrorMessage, Func<string, ErrorCode> writeOperation)
         {
+            ThrowIfDisposed();
+
             bool connected = false;
 
             // Step 1: Acquire the busy lock (atomic compare-and-swap).
@@ -514,6 +545,18 @@ namespace TDKController
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> when the reader has already been disposed.
+        /// Prevents use-after-dispose on public and protected operation entry points.
+        /// </summary>
+        protected void ThrowIfDisposed()
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 0, 0) != 0)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
+            }
         }
 
         /// <summary>

@@ -153,15 +153,32 @@ namespace TDKController.Tests.Unit
         }
 
         [Test]
-        public void GetCarrierID_AfterDispose_ReturnsConnectFailed()
+        public void GetCarrierID_AfterDispose_ThrowsObjectDisposedException()
         {
             var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
             reader.Dispose();
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            Assert.Throws<ObjectDisposedException>(() => reader.GetCarrierID(out carrierId));
+        }
 
-            Assert.AreEqual(ErrorCode.CarrierIdConnectFailed, result);
+        [Test]
+        public void SetCarrierID_AfterDispose_ThrowsObjectDisposedException()
+        {
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+            reader.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => reader.SetCarrierID("1234567890ABCDEF"));
+        }
+
+        [Test]
+        public void Dispose_CalledTwice_DoesNotThrow()
+        {
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+
+            reader.Dispose();
+
+            Assert.DoesNotThrow(() => reader.Dispose());
         }
 
         [Test]
