@@ -896,6 +896,40 @@ namespace TDKController.Tests.Unit
             });
         }
 
+        [Test]
+        public void Init_AfterDispose_ThrowsObjectDisposedException()
+        {
+            _actor.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => _actor.Init());
+        }
+
+        [Test]
+        public void GetLedStatus_AfterDispose_ThrowsObjectDisposedException()
+        {
+            _actor.Dispose();
+
+            string data;
+            Assert.Throws<ObjectDisposedException>(() => _actor.GetLedStatus(out data, 1));
+        }
+
+        [Test]
+        public void ReturnSlotMapStatus_AfterDispose_ThrowsObjectDisposedException()
+        {
+            _actor.Dispose();
+
+            string data;
+            Assert.Throws<ObjectDisposedException>(() => _actor.ReturnSlotMapStatus(out data));
+        }
+
+        [Test]
+        public void Connector_SetAfterDispose_ThrowsObjectDisposedException()
+        {
+            _actor.Dispose();
+
+            Assert.Throws<ObjectDisposedException>(() => _actor.Connector = new TAS300MockHelper());
+        }
+
         #endregion
 
         #region StatusChanged Event Tests
