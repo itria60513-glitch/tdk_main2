@@ -13,7 +13,7 @@ namespace TDKController
     ///   1. GetCarrierID delegates to ExecuteRead (base class), which acquires the busy lock,
     ///      connects to the reader, then invokes PerformBarcodeRead.
     ///   2. PerformBarcodeRead sends MOTORON to activate the scanner motor and waits for "OK".
-        ///   3. TryReadCarrierId sends the LON (read trigger) command up to BarcodeReaderMaxRetryCount times:
+    ///   3. TryReadCarrierId sends the LON (read trigger) command up to BarcodeReaderMaxRetryCount times:
     ///      a. Each attempt sends LON and waits for a barcode string or status response.
     ///      b. The response is classified: printable ASCII = Success, "NG" = Retry, "ERROR" = Fail.
     ///      c. On timeout, LOFF is sent to cancel the trigger, and the read aborts.
@@ -138,29 +138,6 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Sends the BL600 read trigger (LON) and returns the raw barcode response.
-        ///
-        /// Flow:
-        ///   1. Delegate to ReadRawBarcode which sends the LON command.
-        ///   2. On timeout, ReadRawBarcode automatically sends LOFF to cancel the trigger.
-        ///   3. Return the raw barcode string (or error code) to the caller.
-        /// </summary>
-        private ErrorCode ReadBarCode(out string barcode)
-        {
-            barcode = string.Empty;
-
-            try
-            {
-                return ReadRawBarcode(out barcode);
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("ReadBarCode: exception - {0}", ex.Message));
-                throw;
-            }
-        }
-
-        /// <summary>
         /// Sends the BL600 MOTOROFF command and waits for the OK acknowledgement.
         ///
         /// Flow:
@@ -278,39 +255,49 @@ namespace TDKController
         ///   2. If timeout occurs: send "LOFF\r" to cancel the trigger, then return timeout error.
         ///   3. If any other error: return the error immediately.
         ///   4. On success: trim the response and return the raw barcode string.
+        /// Exceptions are logged here and rethrown to the public operation boundary.
         /// </summary>
         private ErrorCode ReadRawBarcode(out string barcode)
         {
             barcode = string.Empty;
 
-            string response;
-            // Step 1: Send the LON trigger command to start barcode scanning.
-            ErrorCode result = SendCommand(CommandRead, ReadTimeoutMs, out response);
-
-            // Step 2: On timeout, send LOFF to cancel the pending read trigger on the hardware.
-            if (result == ErrorCode.CarrierIdTimeout)
+            try
             {
-                StopReadTrigger();
-                return result;
-            }
+                string response;
+                // Step 1: Send the LON trigger command to start barcode scanning.
+                ErrorCode result = SendCommand(CommandRead, ReadTimeoutMs, out response);
 
-            // Step 3: Return any non-timeout errors immediately.
-            if (result != ErrorCode.Success)
+                // Step 2: On timeout, send LOFF to cancel the pending read trigger on the hardware.
+                if (result == ErrorCode.CarrierIdTimeout)
+                {
+                    StopReadTrigger();
+                    return result;
+                }
+
+                // Step 3: Return any non-timeout errors immediately.
+                if (result != ErrorCode.Success)
+                {
+                    return result;
+                }
+
+                // Step 4: Response received successfully; trim and return the barcode data.
+                barcode = TrimResponse(response);
+                return ErrorCode.Success;
+            }
+            catch (Exception ex)
             {
-                return result;
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("ReadRawBarcode: exception - {0}", ex.Message));
+                throw;
             }
-
-            // Step 4: Response received successfully; trim and return the barcode data.
-            barcode = TrimResponse(response);
-            return ErrorCode.Success;
         }
 
         /// <summary>
         /// Retry loop that attempts to read a barcode up to Config.BarcodeReaderMaxRetryCount times.
         /// Called by PerformBarcodeRead after MOTORON succeeds.
+        /// Relies on ReadRawBarcode to encapsulate the LON send/wait flow and timeout cleanup.
         ///
         /// Flow (for each attempt):
-        ///   1. Call ReadBarCode to send LON and get the raw response.
+        ///   1. Call ReadRawBarcode to send LON and get the raw response.
         ///   2. If timeout: abort immediately (no retry — timeout indicates hardware issue).
         ///   3. If other error: abort immediately.
         ///   4. Classify the response using ClassifyReadState:
@@ -329,7 +316,7 @@ namespace TDKController
             {
                 // Step 1: Send the LON read trigger and get the raw response.
                 string barcode;
-                ErrorCode readResult = ReadBarCode(out barcode);
+                ErrorCode readResult = ReadRawBarcode(out barcode);
 
                 // Step 2: Timeout is non-recoverable — abort the entire read operation.
                 if (readResult == ErrorCode.CarrierIdTimeout)

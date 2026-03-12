@@ -10,6 +10,14 @@
   stability, the spec MUST record the named feature, target interface, exact
   approved member scope, approval source, and the interfaces or types that remain
   immutable.
+
+  If the feature intentionally keeps any new lambda-heavy control flow, the spec
+  MUST justify why named methods, local functions, or method groups would be less
+  clear.
+
+  If the feature intentionally keeps duplicated operational flow across methods,
+  the spec MUST justify why extracting a named shared method would make the code
+  less clear or distort the domain model.
 -->
 
 ## User Scenarios & Testing *(mandatory)*

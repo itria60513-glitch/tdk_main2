@@ -11,6 +11,8 @@
 - **Naming**: PascalCase for classes/methods, camelCase for locals, `_camelCase` for private fields, `I`-prefix for interfaces.
 - **Error codes**: Return `int` (not enum). Use `const int` fields. `0` = success, `1-99` = info, `100-199` = warning, negative = error (module-specific ranges: E84 `-1..-99`, LoadportActor `-100..-199`, N2Purge `-200..-299`, CarrierIDReader `-300..-399`, LightCurtain `-400..-499`).
 - **Methods**: prefer <=50 lines, <=3 nesting levels, <=4 parameters. Public/internal methods must be wrapped in try-catch with logging before rethrow.
+- **Lambda**: avoid lambda unless it is clearly the simplest readable option. Prefer named private methods, local functions, or method groups, especially for event wiring, reusable logic, multi-step flow, and code that needs clear debugging.
+- **Repeated flow**: when the same operational flow appears in more than one place, extract it into a clearly named method. Do not keep copy-pasted flow variants unless extraction would materially hurt readability or distort the domain.
 - **Constructor injection**: null-check with `ArgumentNullException`, store as `private readonly`.
 - **Event dependencies**: use property with subscribe/unsubscribe pattern in setter (see `.specify/memory/constitution.md`).
 - **IDisposable module lifecycle**: modules that implement `IDisposable` and still expose public operations must use an `int _disposed` flag with `Interlocked`, provide a `ThrowIfDisposed()`-style guard on public/shared operation entry points, keep `Dispose()` idempotent, and perform cleanup directly on private fields rather than via guarded public setters.

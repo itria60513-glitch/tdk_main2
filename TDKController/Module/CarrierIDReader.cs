@@ -39,6 +39,18 @@ namespace TDKController
         /// </summary>
         protected delegate ErrorCode ReadOperation(out string carrierID);
 
+        /// <summary>
+        /// Delegate signature for protocol-specific page-based read operations.
+        /// Used by ExecuteRead page overloads to avoid lambda wrappers at call sites.
+        /// </summary>
+        protected delegate ErrorCode ReadPageOperation(int page, out string carrierID);
+
+        /// <summary>
+        /// Delegate signature for protocol-specific page-based write operations.
+        /// Used by ExecuteWrite page overloads to avoid lambda wrappers at call sites.
+        /// </summary>
+        protected delegate ErrorCode WritePageOperation(int page, string carrierID);
+
         private IConnector _connector;
         // Thread-safe busy flag: 0 = idle, 1 = busy. Prevents concurrent reader access.
         private int _busyFlag;
@@ -349,12 +361,31 @@ namespace TDKController
 
         /// <summary>
         /// Simplified ExecuteRead overload that skips validation.
-        /// Delegates directly to the full overload with null validation parameters.
+        /// Delegates directly to the full overload with a null validation delegate.
         /// Used by readers that don't require pre-read validation (e.g., BarcodeReader).
         /// </summary>
         protected ErrorCode ExecuteRead(ReadOperation readOperation, out string carrierID)
         {
-            return ExecuteRead(null, null, readOperation, out carrierID);
+            return ExecuteRead(null, readOperation, out carrierID);
+        }
+
+        /// <summary>
+        /// Page-based ExecuteRead overload that accepts page-specific validation and read delegates.
+        /// This keeps subclass call sites concise while reusing the shared ExecuteRead lifecycle.
+        /// </summary>
+        protected ErrorCode ExecuteRead(int page, Func<int, ErrorCode> validateOperation, ReadPageOperation readOperation, out string carrierID)
+        {
+            ErrorCode ValidateCurrentPage()
+            {
+                return validateOperation(page);
+            }
+
+            ErrorCode ReadCurrentPage(out string value)
+            {
+                return readOperation(page, out value);
+            }
+
+            return ExecuteRead(validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPage, ReadCurrentPage, out carrierID);
         }
 
         /// <summary>
@@ -373,51 +404,18 @@ namespace TDKController
         ///
         /// The finally block guarantees cleanup even if the read operation throws an exception.
         /// </summary>
-        protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, string validationErrorMessage, ReadOperation readOperation, out string carrierID)
+        protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, ReadOperation readOperation, out string carrierID)
         {
-            ThrowIfDisposed();
+            string result = string.Empty;
 
-            carrierID = string.Empty;
-            bool connected = false;
-
-            // Step 1: Acquire the busy lock (atomic compare-and-swap).
-            ErrorCode busyResult = AcquireBusy();
-            if (busyResult != ErrorCode.Success)
+            ErrorCode ReadCore()
             {
-                return busyResult;
+                return readOperation(out result);
             }
 
-            try
-            {
-                // Step 2: Run optional pre-read validation (null means no validation needed).
-                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation();
-                if (validationResult != ErrorCode.Success)
-                {
-                    if (!string.IsNullOrEmpty(validationErrorMessage))
-                    {
-                        _logger.WriteLog(LogKey, LogHeadType.Error, validationErrorMessage);
-                    }
-
-                    return validationResult;
-                }
-
-                // Step 3: Establish the connection to the reader hardware.
-                ErrorCode connectResult = ConnectReader();
-                if (connectResult != ErrorCode.Success)
-                {
-                    return connectResult;
-                }
-
-                // Step 4: Connection established; invoke the protocol-specific read operation.
-                connected = true;
-                return readOperation(out carrierID);
-            }
-            finally
-            {
-                // Step 5: Cleanup — disconnect if connected, then always release the busy lock.
-                if (connected) DisconnectReader();
-                ReleaseBusy();
-            }
+            ErrorCode code = ExecuteConnectedOperation(validateOperation, ReadCore, "ExecuteRead");
+            carrierID = result;
+            return code;
         }
 
         /// <summary>
@@ -434,13 +432,58 @@ namespace TDKController
         ///   4. Invoke the protocol-specific writeOperation to send the write command.
         ///   5. (finally) Disconnect from the reader if connected, then release the busy lock.
         /// </summary>
-        protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, string validationErrorMessage, Func<string, ErrorCode> writeOperation)
+        protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, Func<string, ErrorCode> writeOperation)
+        {
+            ErrorCode WriteCore()
+            {
+                return writeOperation(carrierID);
+            }
+
+            return ExecuteConnectedOperation(
+                validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPayload,
+                WriteCore,
+                "ExecuteWrite");
+
+            ErrorCode ValidateCurrentPayload()
+            {
+                return validateOperation(carrierID);
+            }
+        }
+
+        /// <summary>
+        /// Page-based ExecuteWrite overload that accepts page-specific validation and write delegates.
+        /// This keeps subclass call sites concise while reusing the shared ExecuteWrite lifecycle.
+        /// </summary>
+        protected ErrorCode ExecuteWrite(int page, string carrierID, Func<int, string, ErrorCode> validateOperation, WritePageOperation writeOperation)
+        {
+            ErrorCode ValidateCurrentPage(string value)
+            {
+                return validateOperation(page, value);
+            }
+
+            ErrorCode WriteCurrentPage(string value)
+            {
+                return writeOperation(page, value);
+            }
+
+            return ExecuteWrite(carrierID, validateOperation == null ? null : (Func<string, ErrorCode>)ValidateCurrentPage, WriteCurrentPage);
+        }
+
+        /// <summary>
+        /// Shared lifecycle template for carrier ID operations that require validation, connection,
+        /// and deterministic cleanup around the protocol-specific work.
+        /// </summary>
+        private ErrorCode ExecuteConnectedOperation(Func<ErrorCode> validateOperation, Func<ErrorCode> operation, string operationName)
         {
             ThrowIfDisposed();
 
+            if (operation == null)
+            {
+                throw new ArgumentNullException(nameof(operation));
+            }
+
             bool connected = false;
 
-            // Step 1: Acquire the busy lock (atomic compare-and-swap).
             ErrorCode busyResult = AcquireBusy();
             if (busyResult != ErrorCode.Success)
             {
@@ -449,33 +492,29 @@ namespace TDKController
 
             try
             {
-                // Step 2: Run optional pre-write validation (null means no validation needed).
-                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation(carrierID);
+                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation();
                 if (validationResult != ErrorCode.Success)
                 {
-                    if (!string.IsNullOrEmpty(validationErrorMessage))
-                    {
-                        _logger.WriteLog(LogKey, LogHeadType.Error, validationErrorMessage);
-                    }
-
+                    LogValidationFailure(validationResult, operationName);
                     return validationResult;
                 }
 
-                // Step 3: Establish the connection to the reader hardware.
                 ErrorCode connectResult = ConnectReader();
                 if (connectResult != ErrorCode.Success)
                 {
                     return connectResult;
                 }
 
-                // Step 4: Connection established; invoke the protocol-specific write operation.
                 connected = true;
-                return writeOperation(carrierID);
+                return operation();
             }
             finally
             {
-                // Step 5: Cleanup — disconnect if connected, then always release the busy lock.
-                if (connected) DisconnectReader();
+                if (connected)
+                {
+                    DisconnectReader();
+                }
+
                 ReleaseBusy();
             }
         }
@@ -514,6 +553,18 @@ namespace TDKController
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Writes a consistent validation failure log entry for shared template methods.
+        /// This keeps ExecuteRead / ExecuteWrite signatures focused on behavior rather than log strings.
+        /// </summary>
+        private void LogValidationFailure(ErrorCode validationResult, string operationName)
+        {
+            _logger.WriteLog(
+                LogKey,
+                LogHeadType.Error,
+                string.Format("{0}: validation failed with {1}", operationName, validationResult));
         }
 
         /// <summary>

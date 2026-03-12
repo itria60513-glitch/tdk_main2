@@ -26,7 +26,7 @@ namespace TDKController
     ///
     /// Overall read flow (GetCarrierID):
     ///   1. GetCarrierID delegates to ExecuteRead (base class).
-    ///   2. ExecuteRead acquires busy lock, validates page via ValidateReadRequest [1..17],
+    ///   2. ExecuteRead acquires busy lock, validates page via ValidatePage [1..17],
     ///      connects, then invokes TryReadCarrierId.
     ///   3. TryReadCarrierId builds a read command ("X0" + 2-digit page), wraps it in a Hermes frame,
     ///      and sends it. The response is parsed by ParseCarrierIDReaderData which validates
@@ -37,7 +37,7 @@ namespace TDKController
     ///
     /// Overall write flow (SetCarrierID):
     ///   1. SetCarrierID delegates to ExecuteWrite (base class).
-    ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWriteRequest
+    ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWritePayload
     ///      (page [1..17], payload must be exactly 16 hex characters), connects, then invokes WriteCarrierId.
     ///   3. WriteCarrierId builds a write command ("W0" + 2-digit page + uppercase hex data),
     ///      wraps it in a Hermes frame, and sends it.
@@ -129,18 +129,14 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead with ValidateReadRequest (page [1..17]) and TryReadCarrierId.
+        ///   1. Delegates to ExecuteRead with ValidatePage (page [1..17]) and TryReadCarrierId.
         ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                return ExecuteRead(
-                    () => ValidateReadRequest(page),
-                    string.Format("GetCarrierID: invalid Hermes page {0}", page),
-                    (out string value) => TryReadCarrierId(page, out value),
-                    out carrierID);
+                return ExecuteRead(page, ValidatePage, TryReadCarrierId, out carrierID);
             }
             catch (Exception ex)
             {
@@ -152,19 +148,15 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Write flow entry point:
-        ///   1. Delegates to ExecuteWrite with ValidateWriteRequest and WriteCarrierId.
-        ///   2. ValidateWriteRequest checks page [1..17] and that the carrier ID is a 16-char hex string.
+        ///   1. Delegates to ExecuteWrite with ValidateWritePayload and WriteCarrierId.
+        ///   2. ValidateWritePayload checks page [1..17] and that the carrier ID is a 16-char hex string.
         ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                return ExecuteWrite(
-                    carrierID,
-                    value => ValidateWriteRequest(page, value),
-                    string.Format("SetCarrierID: invalid Hermes payload for page {0}", page),
-                    value => WriteCarrierId(page, value));
+                return ExecuteWrite(page, carrierID, ValidateWritePayload, WriteCarrierId);
             }
             catch (Exception ex)
             {
@@ -181,24 +173,6 @@ namespace TDKController
             return page >= 1 && page <= MaxPage
                 ? ErrorCode.Success
                 : ErrorCode.CarrierIdInvalidPage;
-        }
-
-        /// <summary>
-        /// Pre-read validation: checks page range only.
-        /// Called by ExecuteRead before the connection is established.
-        /// </summary>
-        private ErrorCode ValidateReadRequest(int page)
-        {
-            return ValidatePage(page);
-        }
-
-        /// <summary>
-        /// Pre-write validation: delegates to ValidateWritePayload to check both page and payload.
-        /// Called by ExecuteWrite before the connection is established.
-        /// </summary>
-        private ErrorCode ValidateWriteRequest(int page, string carrierID)
-        {
-            return ValidateWritePayload(page, carrierID);
         }
 
         /// <summary>

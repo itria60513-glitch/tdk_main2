@@ -21,6 +21,14 @@ task list MUST include explicit work items that record and enforce the exact
 approved interface scope, and it MUST NOT broaden that exception to other
 interfaces or other features.
 
+If the feature introduces new lambda-based control flow, the task list MUST
+include explicit review or refactor work to justify each retained lambda and
+replace unnecessary cases with named methods, local functions, or method groups.
+
+If the feature contains repeated operational flow across methods, the task list
+MUST include explicit extraction or review work to converge that flow into a
+named shared method unless a documented exception is approved.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

@@ -99,11 +99,7 @@ namespace TDKController
         {
             try
             {
-                return ExecuteRead(
-                    () => ValidateReadRequest(page),
-                    string.Format("GetCarrierID: invalid Omron ASCII page {0}", page),
-                    (out string value) => TryReadCarrierId(page, out value),
-                    out carrierID);
+                return ExecuteRead(page, ValidateReadRequest, TryReadCarrierId, out carrierID);
             }
             catch (Exception ex)
             {
@@ -124,11 +120,7 @@ namespace TDKController
         {
             try
             {
-                return ExecuteWrite(
-                    carrierID,
-                    value => ValidateWriteRequest(page, value),
-                    string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", page),
-                    value => WriteCarrierId(page, value));
+                return ExecuteWrite(page, carrierID, ValidateWriteRequest, WriteCarrierId);
             }
             catch (Exception ex)
             {

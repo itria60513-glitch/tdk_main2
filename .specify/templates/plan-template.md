@@ -39,7 +39,11 @@ the same scope, confirmation that immutable references such as IConnector and
 HRESULT remain unchanged, and when the feature touches an IDisposable module,
 verification that disposed-state ownership, ThrowIfDisposed entry points,
 cleanup-path direct field handling, late-event short-circuiting, and required
-unit tests are all planned explicitly.]
+unit tests are all planned explicitly. Also verify that any proposed lambda usage
+is necessary, limited in scope, and not clearer as a named method, local function,
+or method group. Also verify that any repeated operational flow is converged into
+a named method unless a documented readability or domain-specific reason prevents
+that extraction.]
 
 ## Project Structure
 
