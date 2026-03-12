@@ -25,7 +25,6 @@ namespace TDKController.Tests.Unit
             _loggerMock = new Mock<ILogUtility>();
             _config = new CarrierIDReaderConfig
             {
-                ReaderType = CarrierIDReaderType.BarcodeReader,
                 TimeoutMs = 100,
                 MaxRetryCount = 2,
                 Page = 1,

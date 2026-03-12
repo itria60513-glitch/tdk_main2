@@ -22,7 +22,6 @@ namespace TDKController.Tests.Unit
             _loggerMock = new Mock<ILogUtility>();
             _config = new CarrierIDReaderConfig
             {
-                ReaderType = CarrierIDReaderType.OmronHex,
                 TimeoutMs = 80,
                 Page = 1,
             };

@@ -6,11 +6,6 @@ namespace TDKController
     public class CarrierIDReaderConfig
     {
         /// <summary>
-        /// Gets or sets the configured reader type.
-        /// </summary>
-        public CarrierIDReaderType ReaderType { get; set; } = CarrierIDReaderType.BarcodeReader;
-
-        /// <summary>
         /// Gets or sets the single response wait timeout in milliseconds.
         /// </summary>
         public int TimeoutMs { get; set; } = 10000;
