@@ -62,7 +62,7 @@ namespace TDKController
             Connector = connector;
         }
 
-        /// <summary>Reader configuration (timeout, page, retry count, etc.).</summary>
+        /// <summary>Reader configuration (timeout, retry count, and other shared settings).</summary>
         protected CarrierIDReaderConfig Config { get; }
 
         /// <summary>Logger instance for writing diagnostic and error messages.</summary>
@@ -127,25 +127,22 @@ namespace TDKController
         /// Protocol-specific carrier ID read operation. Entry point called by the host application.
         /// Subclasses typically delegate to ExecuteRead with their own validation and read logic.
         /// </summary>
-        public abstract ErrorCode GetCarrierID(out string carrierID);
+        public abstract ErrorCode GetCarrierID(int page, out string carrierID);
 
         /// <summary>
-        /// Default implementation of carrier ID write. Returns CarrierIdError to indicate
-        /// that writing is not supported. Subclasses that support writing (HermesRFID, OmronASCII,
-        /// OmronHex) override this to provide actual write functionality.
+        /// Default implementation of page-based carrier ID write. Returns CarrierIdError to indicate
+        /// that page-based writing is not supported. RFID readers override this to provide actual behavior.
         /// </summary>
-        public virtual ErrorCode SetCarrierID(string carrierID)
+        public virtual ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
                 ThrowIfDisposed();
-
-                // Base implementation does not support writing; return error.
                 return ErrorCode.CarrierIdError;
             }
             catch (Exception ex)
             {
-                _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("SetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("SetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }

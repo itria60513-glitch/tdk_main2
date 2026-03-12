@@ -28,18 +28,20 @@ namespace TDKController
         ErrorCode ParseCarrierIDReaderData(string command);
 
         /// <summary>
-        /// Reads the carrier identifier from the configured reader.
+        /// Reads the carrier identifier from the specified reader page.
         /// </summary>
+        /// <param name="page">The reader page number to read. Barcode readers ignore this value.</param>
         /// <param name="carrierID">The returned carrier identifier when the call succeeds.</param>
         /// <returns>The read result.</returns>
-        ErrorCode GetCarrierID(out string carrierID);
+        ErrorCode GetCarrierID(int page, out string carrierID);
 
         /// <summary>
-        /// Writes the carrier identifier to a supported RFID reader.
+        /// Writes the carrier identifier to the specified reader page.
         /// </summary>
+        /// <param name="page">The reader page number to write. Barcode readers ignore this value.</param>
         /// <param name="carrierID">The carrier identifier payload to write.</param>
         /// <returns>The write result.</returns>
-        ErrorCode SetCarrierID(string carrierID);
+        ErrorCode SetCarrierID(int page, string carrierID);
     }
 
     /// <summary>

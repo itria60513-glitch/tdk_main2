@@ -25,7 +25,6 @@ namespace TDKController.Tests.Unit
             _config = new CarrierIDReaderConfig
             {
                 TimeoutMs = 80,
-                Page = 1,
             };
 
             _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
@@ -48,7 +47,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("LOT123456789012", carrierId);
@@ -58,7 +57,6 @@ namespace TDKController.Tests.Unit
         [Test]
         public void GetCarrierID_WhenAsciiPageIsSix_UsesLegacyDualPageMask()
         {
-            _config.Page = 6;
             var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
             string sentCommand = null;
@@ -72,7 +70,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(6, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("011000000180\r", sentCommand);
@@ -81,11 +79,10 @@ namespace TDKController.Tests.Unit
         [Test]
         public void GetCarrierID_WhenPageIsInvalid_ReturnsCarrierIdInvalidPage()
         {
-            _config.Page = 31;
             var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(31, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdInvalidPage, result);
         }
@@ -101,7 +98,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdCommandFailed, result);
         }
@@ -113,7 +110,7 @@ namespace TDKController.Tests.Unit
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>())).Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdTimeout, result);
         }
@@ -127,7 +124,7 @@ namespace TDKController.Tests.Unit
                 .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, "00\r"))
                 .Returns((HRESULT)null);
 
-            ErrorCode result = reader.SetCarrierID("CARRIERDATA0001X");
+            ErrorCode result = reader.SetCarrierID(1, "CARRIERDATA0001X");
 
             Assert.AreEqual(ErrorCode.Success, result);
         }
@@ -137,7 +134,7 @@ namespace TDKController.Tests.Unit
         {
             var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
 
-            ErrorCode result = reader.SetCarrierID("SHORT");
+            ErrorCode result = reader.SetCarrierID(1, "SHORT");
 
             Assert.AreEqual(ErrorCode.CarrierIdInvalidParameter, result);
         }
@@ -149,11 +146,16 @@ namespace TDKController.Tests.Unit
             Mock<IConnector> connectorMock = _connectorMock;
             int sendCount = 0;
             var firstSendStarted = new ManualResetEventSlim(false);
+            string firstCommand = null;
 
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
                 .Callback<byte[], int>((buffer, length) =>
                 {
                     sendCount++;
+                    if (firstCommand == null)
+                    {
+                        firstCommand = Encoding.ASCII.GetString(buffer, 0, length);
+                    }
                     firstSendStarted.Set();
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
@@ -166,16 +168,17 @@ namespace TDKController.Tests.Unit
             Task<ErrorCode> firstTask = Task.Run(() =>
             {
                 string carrierId;
-                return reader.GetCarrierID(out carrierId);
+                return reader.GetCarrierID(1, out carrierId);
             });
 
             Assert.IsTrue(firstSendStarted.Wait(500));
 
             string secondCarrierId;
-            ErrorCode secondResult = reader.GetCarrierID(out secondCarrierId);
+            ErrorCode secondResult = reader.GetCarrierID(6, out secondCarrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdBusy, secondResult);
             Assert.AreEqual(1, sendCount);
+            Assert.AreEqual("01100000000C\r", firstCommand);
             Assert.AreEqual(ErrorCode.Success, firstTask.Result);
         }
 
@@ -185,10 +188,15 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderOmronASCII(_config, _connectorMock.Object, _loggerMock.Object);
             Mock<IConnector> connectorMock = _connectorMock;
             var firstSendStarted = new ManualResetEventSlim(false);
+            string firstCommand = null;
 
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
                 .Callback<byte[], int>((buffer, length) =>
                 {
+                    if (firstCommand == null)
+                    {
+                        firstCommand = Encoding.ASCII.GetString(buffer, 0, length);
+                    }
                     firstSendStarted.Set();
                     ThreadPool.QueueUserWorkItem(_ =>
                     {
@@ -198,13 +206,14 @@ namespace TDKController.Tests.Unit
                 })
                 .Returns((HRESULT)null);
 
-            Task<ErrorCode> firstTask = Task.Run(() => reader.SetCarrierID("CARRIERDATA0001X"));
+            Task<ErrorCode> firstTask = Task.Run(() => reader.SetCarrierID(1, "CARRIERDATA0001X"));
 
             Assert.IsTrue(firstSendStarted.Wait(500));
 
-            ErrorCode secondResult = reader.SetCarrierID("CARRIERDATA0002Y");
+            ErrorCode secondResult = reader.SetCarrierID(6, "CARRIERDATA0002Y");
 
             Assert.AreEqual(ErrorCode.CarrierIdBusy, secondResult);
+            Assert.AreEqual("02100000000CCARRIERDATA0001X\r", firstCommand);
             Assert.AreEqual(ErrorCode.Success, firstTask.Result);
         }
 

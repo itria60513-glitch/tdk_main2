@@ -24,7 +24,7 @@ namespace TDKController.Tests.Unit
             _config = new CarrierIDReaderConfig
             {
                 TimeoutMs = 80,
-                MaxRetryCount = 8,
+                BarcodeReaderMaxRetryCount = 8,
             };
 
             _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
@@ -53,7 +53,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("ABC12345", carrierId);
@@ -83,7 +83,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdReadFailed, result);
             Assert.AreEqual(8, readAttempts);
@@ -114,7 +114,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual(3, readAttempts);
@@ -150,7 +150,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
             stopwatch.Stop();
 
             Assert.AreEqual(ErrorCode.CarrierIdTimeout, result);
@@ -183,7 +183,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdCommandFailed, result);
             Assert.AreEqual(1, readAttempts);

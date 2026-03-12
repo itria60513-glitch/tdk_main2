@@ -23,7 +23,6 @@ namespace TDKController.Tests.Unit
             _config = new CarrierIDReaderConfig
             {
                 TimeoutMs = 80,
-                Page = 1,
             };
 
             _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
@@ -45,7 +44,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual("ABCD1234", carrierId);
@@ -62,7 +61,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdCommandFailed, result);
         }
@@ -74,7 +73,7 @@ namespace TDKController.Tests.Unit
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>())).Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdTimeout, result);
         }
@@ -88,7 +87,7 @@ namespace TDKController.Tests.Unit
                 .Callback<byte[], int>((buffer, length) => RaiseResponse(connectorMock, "00\r"))
                 .Returns((HRESULT)null);
 
-            ErrorCode result = reader.SetCarrierID("4142434445463031");
+            ErrorCode result = reader.SetCarrierID(1, "4142434445463031");
 
             Assert.AreEqual(ErrorCode.Success, result);
         }
@@ -98,7 +97,7 @@ namespace TDKController.Tests.Unit
         {
             var reader = new IDReaderOmronHex(_config, _connectorMock.Object, _loggerMock.Object);
 
-            ErrorCode result = reader.SetCarrierID("41424344454630ZZ");
+            ErrorCode result = reader.SetCarrierID(1, "41424344454630ZZ");
 
             Assert.AreEqual(ErrorCode.CarrierIdInvalidParameter, result);
         }
@@ -113,7 +112,7 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.Success, result);
             Assert.AreEqual(8, carrierId.Length);

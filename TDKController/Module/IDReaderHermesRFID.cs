@@ -132,16 +132,19 @@ namespace TDKController
         ///   1. Delegates to ExecuteRead with ValidateReadRequest (page [1..17]) and TryReadCarrierId.
         ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
-        public override ErrorCode GetCarrierID(out string carrierID)
+        public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                // ExecuteRead flow: acquire lock → validate page → connect → TryReadCarrierId → disconnect → release lock.
-                return ExecuteRead(ValidateReadRequest, string.Format("GetCarrierID: invalid Hermes page {0}", Config.Page), TryReadCarrierId, out carrierID);
+                return ExecuteRead(
+                    () => ValidateReadRequest(page),
+                    string.Format("GetCarrierID: invalid Hermes page {0}", page),
+                    (out string value) => TryReadCarrierId(page, out value),
+                    out carrierID);
             }
             catch (Exception ex)
             {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }
@@ -153,26 +156,29 @@ namespace TDKController
         ///   2. ValidateWriteRequest checks page [1..17] and that the carrier ID is a 16-char hex string.
         ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
         /// </remarks>
-        public override ErrorCode SetCarrierID(string carrierID)
+        public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                // ExecuteWrite flow: acquire lock → validate page+payload → connect → WriteCarrierId → disconnect → release lock.
-                return ExecuteWrite(carrierID, ValidateWriteRequest, string.Format("SetCarrierID: invalid Hermes payload for page {0}", Config.Page), WriteCarrierId);
+                return ExecuteWrite(
+                    carrierID,
+                    value => ValidateWriteRequest(page, value),
+                    string.Format("SetCarrierID: invalid Hermes payload for page {0}", page),
+                    value => WriteCarrierId(page, value));
             }
             catch (Exception ex)
             {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }
 
         /// <summary>
-        /// Validates that the configured page number is within the allowed range [1, 17].
+        /// Validates that the current page number is within the allowed range [1, 17].
         /// </summary>
-        private ErrorCode ValidatePage()
+        private ErrorCode ValidatePage(int page)
         {
-            return Config.Page >= 1 && Config.Page <= MaxPage
+            return page >= 1 && page <= MaxPage
                 ? ErrorCode.Success
                 : ErrorCode.CarrierIdInvalidPage;
         }
@@ -181,31 +187,31 @@ namespace TDKController
         /// Pre-read validation: checks page range only.
         /// Called by ExecuteRead before the connection is established.
         /// </summary>
-        private ErrorCode ValidateReadRequest()
+        private ErrorCode ValidateReadRequest(int page)
         {
-            return ValidatePage();
+            return ValidatePage(page);
         }
 
         /// <summary>
         /// Pre-write validation: delegates to ValidateWritePayload to check both page and payload.
         /// Called by ExecuteWrite before the connection is established.
         /// </summary>
-        private ErrorCode ValidateWriteRequest(string carrierID)
+        private ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
-            return ValidateWritePayload(carrierID);
+            return ValidateWritePayload(page, carrierID);
         }
 
         /// <summary>
         /// Validates both the page number and the carrier ID payload for a write operation.
         ///
         /// Validation steps:
-        ///   1. Ensure the configured page is within [1, 17].
+        ///   1. Ensure the supplied page is within [1, 17].
         ///   2. Ensure the carrier ID is exactly 16 hex characters (representing 8 bytes of RFID data).
         /// </summary>
-        private ErrorCode ValidateWritePayload(string carrierID)
+        private ErrorCode ValidateWritePayload(int page, string carrierID)
         {
             // Step 1: Validate the page number range.
-            ErrorCode pageResult = ValidatePage();
+            ErrorCode pageResult = ValidatePage(page);
             if (pageResult != ErrorCode.Success)
             {
                 return pageResult;
@@ -233,13 +239,13 @@ namespace TDKController
         ///      - message[2..3] = page number, message[4..] = carrier ID data.
         ///   5. Return the extracted carrier ID, or CarrierIdCommandFailed if empty.
         /// </summary>
-        private ErrorCode TryReadCarrierId(out string carrierID)
+        private ErrorCode TryReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
             // Step 1-2: Build and send the Hermes read command.
             string response;
-            ErrorCode result = SendCommand(BuildReadCommand(), Config.TimeoutMs, out response);
+            ErrorCode result = SendCommand(BuildReadCommand(page), Config.TimeoutMs, out response);
             if (result != ErrorCode.Success)
             {
                 return result;
@@ -271,11 +277,11 @@ namespace TDKController
         ///   2. Send the command and wait for a response (parsed by ParseCarrierIDReaderData
         ///      which validates the 'w' response frame and checksums).
         /// </summary>
-        private ErrorCode WriteCarrierId(string carrierID)
+        private ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the Hermes write command frame.
-            return SendCommand(BuildWriteCommand(carrierID), Config.TimeoutMs, out response);
+            return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
         /// <summary>
@@ -283,9 +289,9 @@ namespace TDKController
         /// The 'X' prefix identifies this as a read request in the Hermes protocol.
         /// The message is then wrapped in a Hermes frame by PrepareCommand.
         /// </summary>
-        private string BuildReadCommand()
+        private string BuildReadCommand(int page)
         {
-            return PrepareCommand(string.Format("X0{0:D2}", Config.Page));
+            return PrepareCommand(string.Format("X0{0:D2}", page));
         }
 
         /// <summary>
@@ -293,9 +299,9 @@ namespace TDKController
         /// The 'W' prefix identifies this as a write request in the Hermes protocol.
         /// The message is then wrapped in a Hermes frame by PrepareCommand.
         /// </summary>
-        private string BuildWriteCommand(string carrierID)
+        private string BuildWriteCommand(int page, string carrierID)
         {
-            return PrepareCommand(string.Format("W0{0:D2}{1}", Config.Page, carrierID.ToUpperInvariant()));
+            return PrepareCommand(string.Format("W0{0:D2}{1}", page, carrierID.ToUpperInvariant()));
         }
 
         /// <summary>

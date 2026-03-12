@@ -50,59 +50,6 @@ namespace TDKController
             get { return CarrierIDReaderType.OmronHex; }
         }
 
-        /// <inheritdoc />
-        /// <remarks>
-        /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead which handles busy-lock acquisition, page validation,
-        ///      connection lifecycle, and invoking TryReadCarrierId as the core read operation.
-        ///   2. If any step fails, the corresponding error code is returned and the reader
-        ///      is properly disconnected in the finally block of ExecuteRead.
-        /// </remarks>
-        public override ErrorCode GetCarrierID(out string carrierID)
-        {
-            try
-            {
-                // ExecuteRead flow:
-                //   a. Acquire busy lock (prevent concurrent access).
-                //   b. Call ValidateReadRequest to ensure Config.Page is within [1, MaxPage].
-                //   c. Connect to the RFID reader hardware via the connector.
-                //   d. Invoke TryReadCarrierId to perform the actual read operation.
-                //   e. Disconnect and release busy lock in the finally block.
-                return ExecuteRead(ValidateReadRequest, string.Format("GetCarrierID: invalid Omron HEX page {0}", Config.Page), TryReadCarrierId, out carrierID);
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID: exception - {0}", ex.Message));
-                throw;
-            }
-        }
-
-        /// <inheritdoc />
-        /// <remarks>
-        /// Write flow entry point:
-        ///   1. Delegates to ExecuteWrite which handles busy-lock acquisition, payload validation,
-        ///      connection lifecycle, and invoking WriteCarrierId as the core write operation.
-        ///   2. ValidateWriteRequest ensures the page is valid and the carrier ID is a 16-char hex string.
-        /// </remarks>
-        public override ErrorCode SetCarrierID(string carrierID)
-        {
-            try
-            {
-                // ExecuteWrite flow:
-                //   a. Acquire busy lock (prevent concurrent access).
-                //   b. Call ValidateWriteRequest to check page range and payload format.
-                //   c. Connect to the RFID reader hardware via the connector.
-                //   d. Invoke WriteCarrierId to send the write command.
-                //   e. Disconnect and release busy lock in the finally block.
-                return ExecuteWrite(carrierID, ValidateWriteRequest, string.Format("SetCarrierID: invalid Omron HEX payload for page {0}", Config.Page), WriteCarrierId);
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID: exception - {0}", ex.Message));
-                throw;
-            }
-        }
-
         /// <summary>
         /// Core read operation for the Omron HEX reader.
         /// Called by ExecuteRead after the busy lock is acquired and the connection is established.
@@ -116,13 +63,13 @@ namespace TDKController
         ///   6. Convert the hex payload to an ASCII string (each 2 hex chars = 1 ASCII byte).
         ///   7. Return the decoded carrier ID on success.
         /// </summary>
-        protected override ErrorCode TryReadCarrierId(out string carrierID)
+        protected override ErrorCode TryReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
             // Step 1-2: Build and send the HEX-mode read command to the reader.
             string response;
-            ErrorCode result = SendCommand(BuildReadCommand(Config.Page), Config.TimeoutMs, out response);
+            ErrorCode result = SendCommand(BuildReadCommand(page), Config.TimeoutMs, out response);
             if (result != ErrorCode.Success)
             {
                 // Step 3: Return error if the command failed (timeout, connection issue, etc.).
@@ -154,11 +101,11 @@ namespace TDKController
         ///   3. The response is parsed by ParseCarrierIDReaderData (inherited from OmronASCII)
         ///      which checks for a "00" success prefix.
         /// </summary>
-        protected override ErrorCode WriteCarrierId(string carrierID)
+        protected override ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the HEX-mode write command with the carrier ID payload.
-            return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
+            return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
         /// <summary>
@@ -182,25 +129,25 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Validates that the configured page number is within the allowed range [1, 30].
+        /// Validates that the supplied page number is within the allowed range [1, 30].
         /// Called by ExecuteRead before the connection is established.
         /// </summary>
-        protected override ErrorCode ValidateReadRequest()
+        protected override ErrorCode ValidateReadRequest(int page)
         {
-            return ValidatePage(MaxPage);
+            return ValidatePage(page, MaxPage);
         }
 
         /// <summary>
         /// Validates the page number and the carrier ID payload before a write operation.
         ///
         /// Validation steps:
-        ///   1. Ensure the configured page is within [1, 30].
+        ///   1. Ensure the supplied page is within [1, 30].
         ///   2. Ensure the carrier ID is exactly 16 hex characters (representing 8 bytes of data).
         /// </summary>
-        protected override ErrorCode ValidateWriteRequest(string carrierID)
+        protected override ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
             // Step 1: Validate the page number range.
-            ErrorCode pageResult = ValidatePage(MaxPage);
+            ErrorCode pageResult = ValidatePage(page, MaxPage);
             if (pageResult != ErrorCode.Success)
             {
                 return pageResult;

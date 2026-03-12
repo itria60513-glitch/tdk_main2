@@ -95,16 +95,19 @@ namespace TDKController
         ///   1. Delegates to ExecuteRead with ValidateReadRequest (page [1..30]) and TryReadCarrierId.
         ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
-        public override ErrorCode GetCarrierID(out string carrierID)
+        public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                // ExecuteRead flow: acquire lock → validate page → connect → TryReadCarrierId → disconnect → release lock.
-                return ExecuteRead(ValidateReadRequest, string.Format("GetCarrierID: invalid Omron ASCII page {0}", Config.Page), TryReadCarrierId, out carrierID);
+                return ExecuteRead(
+                    () => ValidateReadRequest(page),
+                    string.Format("GetCarrierID: invalid Omron ASCII page {0}", page),
+                    (out string value) => TryReadCarrierId(page, out value),
+                    out carrierID);
             }
             catch (Exception ex)
             {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }
@@ -117,16 +120,19 @@ namespace TDKController
         ///      16-char printable ASCII string.
         ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
         /// </remarks>
-        public override ErrorCode SetCarrierID(string carrierID)
+        public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                // ExecuteWrite flow: acquire lock → validate page+payload → connect → WriteCarrierId → disconnect → release lock.
-                return ExecuteWrite(carrierID, ValidateWriteRequest, string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", Config.Page), WriteCarrierId);
+                return ExecuteWrite(
+                    carrierID,
+                    value => ValidateWriteRequest(page, value),
+                    string.Format("SetCarrierID: invalid Omron ASCII payload for page {0}", page),
+                    value => WriteCarrierId(page, value));
             }
             catch (Exception ex)
             {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }
@@ -155,13 +161,13 @@ namespace TDKController
         ///   4. Verify the payload contains only printable ASCII characters (0x20-0x7E).
         ///   5. Return the payload as the carrier ID string.
         /// </summary>
-        protected virtual ErrorCode TryReadCarrierId(out string carrierID)
+        protected virtual ErrorCode TryReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
             // Step 1-2: Build and send the ASCII-mode read command.
             string response;
-            ErrorCode result = SendCommand(BuildReadCommand(Config.Page), Config.TimeoutMs, out response);
+            ErrorCode result = SendCommand(BuildReadCommand(page), Config.TimeoutMs, out response);
             if (result != ErrorCode.Success)
             {
                 return result;
@@ -191,11 +197,11 @@ namespace TDKController
         ///   2. Send the command and wait for a response (validated by ParseCarrierIDReaderData
         ///      which checks for the "00" success prefix).
         /// </summary>
-        protected virtual ErrorCode WriteCarrierId(string carrierID)
+        protected virtual ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the ASCII-mode write command.
-            return SendCommand(BuildWriteCommand(Config.Page, carrierID), Config.TimeoutMs, out response);
+            return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
         /// <summary>
@@ -337,12 +343,12 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Validates that the configured page number is within the allowed range [1, maxPage].
+        /// Validates that the supplied page number is within the allowed range [1, maxPage].
         /// Shared by both ASCII and HEX subclasses (each passes its own MaxPage constant).
         /// </summary>
-        protected ErrorCode ValidatePage(int maxPage)
+        protected ErrorCode ValidatePage(int page, int maxPage)
         {
-            return Config.Page >= 1 && Config.Page <= maxPage
+            return page >= 1 && page <= maxPage
                 ? ErrorCode.Success
                 : ErrorCode.CarrierIdInvalidPage;
         }
@@ -352,9 +358,9 @@ namespace TDKController
         /// Called by ExecuteRead before the connection is established.
         /// Virtual to allow OmronHex to override with its own MaxPage.
         /// </summary>
-        protected virtual ErrorCode ValidateReadRequest()
+        protected virtual ErrorCode ValidateReadRequest(int page)
         {
-            return ValidatePage(MaxPage);
+            return ValidatePage(page, MaxPage);
         }
 
         /// <summary>
@@ -362,23 +368,23 @@ namespace TDKController
         /// Virtual to allow OmronHex to override with hex-specific validation.
         /// Called by ExecuteWrite before the connection is established.
         /// </summary>
-        protected virtual ErrorCode ValidateWriteRequest(string carrierID)
+        protected virtual ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
-            return ValidateAsciiWrite(carrierID);
+            return ValidateAsciiWrite(page, carrierID);
         }
 
         /// <summary>
         /// Validates both the page number and the carrier ID payload for an ASCII write operation.
         ///
         /// Validation steps:
-        ///   1. Ensure the configured page is within [1, 30].
+        ///   1. Ensure the supplied page is within [1, 30].
         ///   2. Ensure the carrier ID is exactly 16 printable ASCII characters.
         ///      (Each Omron memory page holds 16 bytes of data.)
         /// </summary>
-        protected ErrorCode ValidateAsciiWrite(string carrierID)
+        protected ErrorCode ValidateAsciiWrite(int page, string carrierID)
         {
             // Step 1: Validate the page number range.
-            ErrorCode pageResult = ValidatePage(MaxPage);
+            ErrorCode pageResult = ValidatePage(page, MaxPage);
             if (pageResult != ErrorCode.Success)
             {
                 return pageResult;

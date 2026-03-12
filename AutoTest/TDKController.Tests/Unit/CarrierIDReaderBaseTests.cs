@@ -26,8 +26,7 @@ namespace TDKController.Tests.Unit
             _config = new CarrierIDReaderConfig
             {
                 TimeoutMs = 100,
-                MaxRetryCount = 2,
-                Page = 1,
+                BarcodeReaderMaxRetryCount = 2,
             };
 
             _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
@@ -88,13 +87,13 @@ namespace TDKController.Tests.Unit
             Task<ErrorCode> firstTask = Task.Run(() =>
             {
                 string carrierId;
-                return reader.GetCarrierID(out carrierId);
+                return reader.GetCarrierID(1, out carrierId);
             });
 
             Assert.IsTrue(firstReadStarted.Wait(500));
 
             string secondCarrierId;
-            ErrorCode secondResult = reader.GetCarrierID(out secondCarrierId);
+            ErrorCode secondResult = reader.GetCarrierID(1, out secondCarrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdBusy, secondResult);
             Assert.IsEmpty(secondCarrierId);
@@ -133,9 +132,9 @@ namespace TDKController.Tests.Unit
                 .Returns((HRESULT)null);
 
             string firstCarrierId;
-            ErrorCode firstResult = reader.GetCarrierID(out firstCarrierId);
+            ErrorCode firstResult = reader.GetCarrierID(1, out firstCarrierId);
             string secondCarrierId;
-            ErrorCode secondResult = reader.GetCarrierID(out secondCarrierId);
+            ErrorCode secondResult = reader.GetCarrierID(1, out secondCarrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdTimeout, firstResult);
             Assert.AreEqual(ErrorCode.Success, secondResult);
@@ -147,7 +146,7 @@ namespace TDKController.Tests.Unit
         {
             var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
 
-            ErrorCode result = reader.SetCarrierID("1234567890ABCDEF");
+            ErrorCode result = reader.SetCarrierID(1, "1234567890ABCDEF");
 
             Assert.AreEqual(ErrorCode.CarrierIdError, result);
         }
@@ -159,7 +158,7 @@ namespace TDKController.Tests.Unit
             reader.Dispose();
 
             string carrierId;
-            Assert.Throws<ObjectDisposedException>(() => reader.GetCarrierID(out carrierId));
+            Assert.Throws<ObjectDisposedException>(() => reader.GetCarrierID(1, out carrierId));
         }
 
         [Test]
@@ -168,7 +167,7 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
             reader.Dispose();
 
-            Assert.Throws<ObjectDisposedException>(() => reader.SetCarrierID("1234567890ABCDEF"));
+            Assert.Throws<ObjectDisposedException>(() => reader.SetCarrierID(1, "1234567890ABCDEF"));
         }
 
         [Test]
@@ -188,7 +187,7 @@ namespace TDKController.Tests.Unit
             var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
 
             string carrierId;
-            ErrorCode result = reader.GetCarrierID(out carrierId);
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
             Assert.AreEqual(ErrorCode.CarrierIdConnectFailed, result);
         }

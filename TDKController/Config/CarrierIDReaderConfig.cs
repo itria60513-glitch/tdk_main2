@@ -1,7 +1,7 @@
 namespace TDKController
 {
     /// <summary>
-    /// Configuration parameters for carrier ID reader workflows.
+    /// Shared configuration parameters for carrier ID reader workflows.
     /// </summary>
     public class CarrierIDReaderConfig
     {
@@ -13,11 +13,6 @@ namespace TDKController
         /// <summary>
         /// Gets or sets the maximum retry count for the barcode reader.
         /// </summary>
-        public int MaxRetryCount { get; set; } = 8;
-
-        /// <summary>
-        /// Gets or sets the RFID page number.
-        /// </summary>
-        public int Page { get; set; } = 1;
+        public int BarcodeReaderMaxRetryCount { get; set; } = 8;
     }
 }

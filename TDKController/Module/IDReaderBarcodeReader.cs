@@ -13,7 +13,7 @@ namespace TDKController
     ///   1. GetCarrierID delegates to ExecuteRead (base class), which acquires the busy lock,
     ///      connects to the reader, then invokes PerformBarcodeRead.
     ///   2. PerformBarcodeRead sends MOTORON to activate the scanner motor and waits for "OK".
-    ///   3. TryReadCarrierId sends the LON (read trigger) command up to MaxRetryCount times:
+        ///   3. TryReadCarrierId sends the LON (read trigger) command up to BarcodeReaderMaxRetryCount times:
     ///      a. Each attempt sends LON and waits for a barcode string or status response.
     ///      b. The response is classified: printable ASCII = Success, "NG" = Retry, "ERROR" = Fail.
     ///      c. On timeout, LOFF is sent to cancel the trigger, and the read aborts.
@@ -182,22 +182,29 @@ namespace TDKController
         }
 
         /// <inheritdoc />
-        /// <remarks>
-        /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead (no validation needed for barcode readers).
-        ///   2. ExecuteRead acquires the busy lock, connects, invokes PerformBarcodeRead,
-        ///      then disconnects and releases the lock in the finally block.
-        /// </remarks>
-        public override ErrorCode GetCarrierID(out string carrierID)
+        public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                // No page validation needed for barcode readers — use the simplified ExecuteRead overload.
                 return ExecuteRead(PerformBarcodeRead, out carrierID);
             }
             catch (Exception ex)
             {
-                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID: exception - {0}", ex.Message));
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("GetCarrierID(page): exception - {0}", ex.Message));
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
+        public override ErrorCode SetCarrierID(int page, string carrierID)
+        {
+            try
+            {
+                return base.SetCarrierID(page, carrierID);
+            }
+            catch (Exception ex)
+            {
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Exception, string.Format("SetCarrierID(page): exception - {0}", ex.Message));
                 throw;
             }
         }
@@ -224,7 +231,7 @@ namespace TDKController
                 return motorOnResult;
             }
 
-            // Step 2: Perform the read-with-retry loop (up to Config.MaxRetryCount attempts).
+            // Step 2: Perform the read-with-retry loop (up to Config.BarcodeReaderMaxRetryCount attempts).
             ErrorCode result = TryReadCarrierId(out carrierID);
 
             // Step 3: Always attempt to turn off the motor, even if the read failed.
@@ -299,7 +306,7 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Retry loop that attempts to read a barcode up to Config.MaxRetryCount times.
+        /// Retry loop that attempts to read a barcode up to Config.BarcodeReaderMaxRetryCount times.
         /// Called by PerformBarcodeRead after MOTORON succeeds.
         ///
         /// Flow (for each attempt):
@@ -318,7 +325,7 @@ namespace TDKController
             carrierID = string.Empty;
             ErrorCode lastResult = ErrorCode.CarrierIdReadFailed;
 
-            for (int attempt = 0; attempt < Config.MaxRetryCount; attempt++)
+            for (int attempt = 0; attempt < Config.BarcodeReaderMaxRetryCount; attempt++)
             {
                 // Step 1: Send the LON read trigger and get the raw response.
                 string barcode;
