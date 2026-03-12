@@ -1,4 +1,6 @@
-namespace TDKController.Interface
+using Communication.Interface;
+
+namespace TDKController
 {
     /// <summary>
     /// Defines the unified contract for carrier identifier reader operations.
@@ -9,6 +11,14 @@ namespace TDKController.Interface
         /// Gets the active carrier ID reader type.
         /// </summary>
         CarrierIDReaderType CarrierIDReaderType { get; }
+
+        /// <summary>
+        /// Gets or sets the communication connector to the reader hardware.
+        /// External consumers MUST use this property to replace the connector at runtime;
+        /// the implementation automatically re-wires DataReceived event subscriptions
+        /// in the setter so that event routing stays consistent.
+        /// </summary>
+        IConnector Connector { get; set; }
 
         /// <summary>
         /// Parses raw device response data and updates reader state.
@@ -31,10 +41,7 @@ namespace TDKController.Interface
         /// <returns>The write result.</returns>
         ErrorCode SetCarrierID(string carrierID);
     }
-}
 
-namespace TDKController
-{
     /// <summary>
     /// Supported carrier ID reader types.
     /// </summary>

@@ -222,8 +222,10 @@ namespace TDKController
         /// Communication channel to TAS300.
         /// Uses property setter pattern: unsubscribes from old connector,
         /// subscribes to new connector's DataReceived event.
+        /// Declared in ILoadPortActor so external consumers can replace
+        /// the connector at runtime without knowing the concrete type.
         /// </summary>
-        internal IConnector Connector
+        public IConnector Connector
         {
             get { return _connector; }
             set
@@ -302,8 +304,8 @@ namespace TDKController
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
-            Connector = connector;
+            // Assign through the property to trigger DataReceived subscribe logic
+            Connector = connector ?? throw new ArgumentNullException(nameof(connector));
         }
 
         #endregion

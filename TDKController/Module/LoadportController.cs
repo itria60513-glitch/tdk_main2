@@ -1,20 +1,15 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using TDKController.Config;
-using TDKController.Interface;
 
-namespace TDKController.Module
+namespace TDKController
 {
-    internal class LoadportController : ILoadportController
+    public class LoadportController : ILoadportController
     {
-        private LoadportControllerConfig _config;
+        private readonly LoadportControllerConfig _config;
 
         public LoadportController(LoadportControllerConfig config)
         {
-            _config = config;
+            // Null-check per constitution constructor injection rules
+            _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
         // Implement ILoadportController interface members here

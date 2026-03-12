@@ -1,12 +1,13 @@
 <!--
-Sync Impact Report — v3.6.1 → v3.6.2
+Sync Impact Report — v3.6.3 → v3.6.4
 
-Version change: 3.6.1 → 3.6.2 (PATCH: 將 logging 與 communication 的參考定義對齊目前實際專案與介面檔案)
+Version change: 3.6.3 → 3.6.4 (PATCH: IConnector 可置換規則強化為
+必須納入模組 interface，讓外部使用者可透過介面替換連接器；範例更新
+為同時展示 interface 宣告與 class 實作)
 
 Modified sections:
-- 必要基礎設施介面: 將 IConnector 對齊至 Communication/Interface/IConnector.cs 與 Communication.Interface 命名空間
-- 必要基礎設施介面: 將 ILogUtility 對齊至 TDKLogUtility/Interface/ILogUtility.cs 與 TDKLogUtility.Module 命名空間
-- 專案組成與分層說明: 將 TDKCommunication 對齊為 Communication 專案名稱
+- 通訊事件訂閱規則: IConnector 可置換規則新增「必須宣告於介面」
+  約束；範例擴充為 interface + class 雙段落
 
 Added sections: (none)
 
@@ -17,16 +18,16 @@ Templates requiring updates:
 - .specify/templates/spec-template.md — ✅ no change needed
 - .specify/templates/tasks-template.md — ✅ no change needed
 - .specify/templates/commands/*.md — ✅ not present
-- .github/copilot-instructions.md — ✅ updated
+- .github/copilot-instructions.md — ✅ no change needed
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.6.2
+**版本**: 3.6.4
 **批准日期**: 2026-02-01
-**最後修訂**: 2026-03-11
+**最後修訂**: 2026-03-12
 
 ## 核心原則
 
@@ -76,48 +77,77 @@ Follow-up TODOs:
 
 #### 通訊事件訂閱規則
 
-- **使用屬性管理暴露事件的相依性**：當注入的相依性暴露事件需要訂閱時，應使用帶有自訂 setter 的屬性而非 readonly 欄位。
-- **指派時訂閱**：指派新值到屬性時，訂閱新實例上所需的事件。
-- **重新指派前取消訂閱**：指派新實例前，取消訂閱舊實例的事件。
-- **Null 安全取消訂閱**：嘗試取消訂閱前檢查 null。
+- **使用屬性管理暴露事件的相依性**：當注入的相依性暴露事件需要訂閱時，**必須**使用帶有自訂 setter 的屬性而非 readonly 欄位。
+- **IConnector 可置換規則**：模組注入的 `IConnector` **必須**以具有
+  public setter 的屬性宣告於模組的介面（interface）中，讓外部使用者
+  可透過介面在執行期替換連接器實例。**不得**將 `IConnector` 儲存為
+  private readonly 欄位，亦**不得**以 `internal` 修飾符隱藏於介面之外。
+- **指派時訂閱**：指派新值到屬性時，**必須**訂閱新實例上所需的事件。
+- **重新指派前取消訂閱**：指派新實例前，**必須**取消訂閱舊實例的事件。
+- **Null 安全取消訂閱**：嘗試取消訂閱前**必須**檢查 null。
 - **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性暴露於介面以供外部存取。
 - **範例模式**：
   ```csharp
-  public class LoadportActor
+  // ================ Interface: declare Connector as settable ================
+  // IConnector MUST appear in the module interface so that external
+  // consumers can replace the connector without knowing the concrete type.
+  public interface ILoadPortActor : IDisposable
   {
-      private ICommunication _communication;
+      // ... other members ...
 
       /// <summary>
-      /// Gets the configuration for this LoadportActor instance.
+      /// Gets or sets the communication channel to TAS300 hardware.
+      /// Replacing the connector at runtime automatically re-wires
+      /// the DataReceived event subscription inside the implementation.
       /// </summary>
-      public LoadportActorConfig Config { get; }
+      IConnector Connector { get; set; }
+  }
 
-      public ICommunication Communication
+  // ================ Implementation: property setter pattern ================
+  public class LoadportActor : ILoadPortActor
+  {
+      private IConnector _connector;
+
+      // --------------- IConnector property (public, settable) ---------------
+      // Implements ILoadPortActor.Connector.
+      // The setter handles unsubscribe/subscribe so callers simply assign
+      // a new connector and event routing updates automatically.
+      public IConnector Connector
       {
-          get => _communication;
+          get => _connector;
           set
           {
-              if (_communication != null)
-              {
-                  _communication.DataReceived -= OnDataReceived;
-              }
+              // Step 1: Unsubscribe from old connector (null-safe)
+              if (_connector != null)
+                  _connector.DataReceived -= OnDataReceived;
 
-              _communication = value;
+              // Step 2: Store the new connector reference
+              _connector = value;
 
-              if (_communication != null)
-              {
-                  _communication.DataReceived += OnDataReceived;
-              }
+              // Step 3: Subscribe to the new connector's events
+              if (_connector != null)
+                  _connector.DataReceived += OnDataReceived;
           }
       }
 
-      public LoadportActor(LoadportActorConfig config, ICommunication communication)
+      // --------------- Constructor ---------------
+      // Inject via constructor; assign through property to trigger
+      // subscribe logic from the very first assignment.
+      public LoadportActor(
+          LoadportActorConfig config,
+          IConnector connector)
       {
-          Config = config ?? throw new ArgumentNullException(nameof(config));
-          Communication = communication ?? throw new ArgumentNullException(nameof(communication));
+          Config = config
+              ?? throw new ArgumentNullException(nameof(config));
+
+          // Assign through the property to trigger subscribe logic
+          Connector = connector
+              ?? throw new ArgumentNullException(nameof(connector));
       }
 
-      private void OnDataReceived(object sender, DataEventArgs e) { /* Handle */ }
+      // --------------- Event handler ---------------
+      private void OnDataReceived(
+          byte[] byData, int length) { /* Handle */ }
   }
   ```
 
