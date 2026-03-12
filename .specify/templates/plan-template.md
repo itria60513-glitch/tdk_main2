@@ -35,8 +35,11 @@
 feature-scoped reference-interface exceptions. If such an exception exists, record
 the named feature, the exact interface, the minimal approved member changes, the
 user approval source, confirmation that spec.md / plan.md / tasks.md all capture
-the same scope, and confirmation that immutable references such as IConnector and
-HRESULT remain unchanged.]
+the same scope, confirmation that immutable references such as IConnector and
+HRESULT remain unchanged, and when the feature touches an IDisposable module,
+verification that disposed-state ownership, ThrowIfDisposed entry points,
+cleanup-path direct field handling, late-event short-circuiting, and required
+unit tests are all planned explicitly.]
 
 ## Project Structure
 

@@ -1,31 +1,32 @@
 <!--
-Sync Impact Report — v3.6.3 → v3.6.4
+Sync Impact Report — v3.6.4 → v3.7.0
 
-Version change: 3.6.3 → 3.6.4 (PATCH: IConnector 可置換規則強化為
-必須納入模組 interface，讓外部使用者可透過介面替換連接器；範例更新
-為同時展示 interface 宣告與 class 實作)
+Version change: 3.6.4 → 3.7.0 (MINOR: 新增模組生命週期與
+Dispose 防護規則，要求模組在實作 IDisposable 且仍提供公開操作時
+必須以 ThrowIfDisposed 模式防止 use-after-dispose)
 
 Modified sections:
-- 通訊事件訂閱規則: IConnector 可置換規則新增「必須宣告於介面」
-  約束；範例擴充為 interface + class 雙段落
+- 程式碼品質: 新增「模組生命週期與 Dispose 防護規則」
+- 合規檢查: 新增 IDisposable 模組的生命週期與晚到事件驗證要求
 
-Added sections: (none)
+Added sections:
+- 模組生命週期與 Dispose 防護規則
 
 Removed sections: (none)
 
 Templates requiring updates:
-- .specify/templates/plan-template.md — ✅ no change needed
-- .specify/templates/spec-template.md — ✅ no change needed
-- .specify/templates/tasks-template.md — ✅ no change needed
+- .specify/templates/plan-template.md — ✅ updated
+- .specify/templates/spec-template.md — ✅ updated
+- .specify/templates/tasks-template.md — ✅ updated
 - .specify/templates/commands/*.md — ✅ not present
-- .github/copilot-instructions.md — ✅ no change needed
+- .github/copilot-instructions.md — ✅ updated
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.6.4
+**版本**: 3.7.0
 **批准日期**: 2026-02-01
 **最後修訂**: 2026-03-12
 
@@ -148,6 +149,55 @@ Follow-up TODOs:
       // --------------- Event handler ---------------
       private void OnDataReceived(
           byte[] byData, int length) { /* Handle */ }
+  }
+  ```
+
+#### 模組生命週期與 Dispose 防護規則
+
+- **適用範圍**：任何模組只要實作 `IDisposable`，且在建構完成後仍提供公開或受保護的操作入口，**必須**實作明確的 disposed 狀態管理。
+- **Disposed 旗標**：模組**必須**使用 `int _disposed` 搭配 `Interlocked` 進行執行緒安全的單次釋放控制。
+- **ThrowIfDisposed 模式**：模組**必須**提供集中式 `ThrowIfDisposed()`（或語意等價的方法），並在所有公開操作入口、共用命令執行入口、以及可替換相依性的 setter 前呼叫，以防止 use-after-dispose。
+- **Dispose 冪等性**：`Dispose()` 與 `Dispose(bool disposing)` **必須**可重複呼叫且只執行一次實際清理。
+- **清理路徑限制**：`Dispose(bool disposing)` **不得**透過已受 `ThrowIfDisposed()` 保護的公開 setter 或公開方法執行清理；事件解除訂閱與欄位清空**必須**直接操作 private 欄位完成。
+- **晚到事件防護**：事件回呼、I/O callback、背景通知等非同步入口在物件已釋放後**必須**安全短路，不得再觸碰已釋放的 wait handle、connector 或快取狀態。
+- **測試要求**：模組單元測試**必須**驗證 Dispose 後操作會被拒絕、重複 Dispose 不會拋出非預期例外，且事件/回呼在釋放後不會造成例外或狀態破壞。
+- **範例模式**：
+  ```csharp
+  private int _disposed;
+
+  protected void ThrowIfDisposed()
+  {
+      if (Interlocked.CompareExchange(ref _disposed, 0, 0) != 0)
+      {
+          throw new ObjectDisposedException(GetType().FullName);
+      }
+  }
+
+  public void Dispose()
+  {
+      Dispose(true);
+      GC.SuppressFinalize(this);
+  }
+
+  protected virtual void Dispose(bool disposing)
+  {
+      if (Interlocked.Exchange(ref _disposed, 1) != 0)
+      {
+          return;
+      }
+
+      if (!disposing)
+      {
+          return;
+      }
+
+      if (_connector != null)
+      {
+          _connector.DataReceived -= OnDataReceived;
+          _connector = null;
+      }
+
+      _responseSignal.Dispose();
   }
   ```
 
@@ -542,4 +592,5 @@ AutoTest/
 - 所有程式碼審查**必須**驗證是否符合憲章。
 - 任何偏離憲章的行為**必須**被記錄並核准。
 - 已核准的 feature 介面例外**必須**驗證 spec、plan、tasks 三者對目標介面、允許成員範圍與不可修改項目之記錄完全一致。
+- 任何新增或修改 `IDisposable` 模組的變更**必須**驗證 disposed 旗標、`ThrowIfDisposed()` 入口、防止晚到事件、以及重複 Dispose 的測試是否完整。
 - 定期審查憲章並在必要時提出修訂。

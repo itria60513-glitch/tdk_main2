@@ -81,6 +81,8 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
+- If the feature touches an IDisposable module: what happens when an operation,
+  connector swap, callback, or late event occurs after disposal?
 
 ## Requirements *(mandatory)*
 
