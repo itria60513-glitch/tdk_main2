@@ -1,4 +1,4 @@
-﻿namespace TDKLogUtility.GUI
+﻿namespace TDKController.GUI
 {
     partial class LoadPortSettingGUI
     {

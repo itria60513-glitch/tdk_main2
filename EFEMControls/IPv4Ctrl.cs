@@ -539,7 +539,7 @@ namespace EFEM.GUIControls
             }
         }
 
-        private Size MinimumSize
+        private new Size MinimumSize
         {
             get
             {

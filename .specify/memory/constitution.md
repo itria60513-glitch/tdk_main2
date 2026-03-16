@@ -1,31 +1,33 @@
 <!--
-Sync Impact Report — v3.4.0 → v3.5.0
+Sync Impact Report — v3.8.0 → v3.9.0
 
-Version change: 3.4.0 → 3.5.0 (MINOR: added implementation output restriction)
+Version change: 3.8.0 → 3.9.0 (MINOR: 新增重複流程抽取規則，要求真正重複的作業流程
+必須提取為具名 method，避免在模組與流程分支中維護多份等價邏輯)
 
 Modified sections:
-- 文件標準: 新增「實作輸出限制」規則（禁止在註解或標題新增任務分類標籤）
+- 程式碼品質: 強化程式碼重用要求，新增「重複流程抽取規則」
+- 合規檢查: 新增重複流程是否已抽成 method 的驗證要求
 
 Added sections:
-- 文件標準 / 實作輸出限制
+- 重複流程抽取規則
 
 Removed sections: (none)
 
 Templates requiring updates:
-- .specify/templates/plan-template.md — ✅ no change required
-- .specify/templates/spec-template.md — ✅ no change required
-- .specify/templates/tasks-template.md — ✅ no change required
+- .specify/templates/plan-template.md — ✅ updated
+- .specify/templates/spec-template.md — ✅ updated
+- .specify/templates/tasks-template.md — ✅ updated
 - .specify/templates/commands/*.md — ✅ not present
-- README.md — ✅ no change required
+- .github/copilot-instructions.md — ✅ updated
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.5.0
+**版本**: 3.9.0
 **批准日期**: 2026-02-01
-**最後修訂**: 2026-02-11
+**最後修訂**: 2026-03-12
 
 ## 核心原則
 
@@ -75,48 +77,126 @@ Follow-up TODOs:
 
 #### 通訊事件訂閱規則
 
-- **使用屬性管理暴露事件的相依性**：當注入的相依性暴露事件需要訂閱時，應使用帶有自訂 setter 的屬性而非 readonly 欄位。
-- **指派時訂閱**：指派新值到屬性時，訂閱新實例上所需的事件。
-- **重新指派前取消訂閱**：指派新實例前，取消訂閱舊實例的事件。
-- **Null 安全取消訂閱**：嘗試取消訂閱前檢查 null。
+- **使用屬性管理暴露事件的相依性**：當注入的相依性暴露事件需要訂閱時，**必須**使用帶有自訂 setter 的屬性而非 readonly 欄位。
+- **IConnector 可置換規則**：模組注入的 `IConnector` **必須**以具有
+  public setter 的屬性宣告於模組的介面（interface）中，讓外部使用者
+  可透過介面在執行期替換連接器實例。**不得**將 `IConnector` 儲存為
+  private readonly 欄位，亦**不得**以 `internal` 修飾符隱藏於介面之外。
+- **指派時訂閱**：指派新值到屬性時，**必須**訂閱新實例上所需的事件。
+- **重新指派前取消訂閱**：指派新實例前，**必須**取消訂閱舊實例的事件。
+- **Null 安全取消訂閱**：嘗試取消訂閱前**必須**檢查 null。
 - **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性暴露於介面以供外部存取。
 - **範例模式**：
   ```csharp
-  public class LoadportActor
+  // ================ Interface: declare Connector as settable ================
+  // IConnector MUST appear in the module interface so that external
+  // consumers can replace the connector without knowing the concrete type.
+  public interface ILoadPortActor : IDisposable
   {
-      private ICommunication _communication;
+      // ... other members ...
 
       /// <summary>
-      /// Gets the configuration for this LoadportActor instance.
+      /// Gets or sets the communication channel to TAS300 hardware.
+      /// Replacing the connector at runtime automatically re-wires
+      /// the DataReceived event subscription inside the implementation.
       /// </summary>
-      public LoadportActorConfig Config { get; }
+      IConnector Connector { get; set; }
+  }
 
-      public ICommunication Communication
+  // ================ Implementation: property setter pattern ================
+  public class LoadportActor : ILoadPortActor
+  {
+      private IConnector _connector;
+
+      // --------------- IConnector property (public, settable) ---------------
+      // Implements ILoadPortActor.Connector.
+      // The setter handles unsubscribe/subscribe so callers simply assign
+      // a new connector and event routing updates automatically.
+      public IConnector Connector
       {
-          get => _communication;
+          get => _connector;
           set
           {
-              if (_communication != null)
-              {
-                  _communication.DataReceived -= OnDataReceived;
-              }
+              // Step 1: Unsubscribe from old connector (null-safe)
+              if (_connector != null)
+                  _connector.DataReceived -= OnDataReceived;
 
-              _communication = value;
+              // Step 2: Store the new connector reference
+              _connector = value;
 
-              if (_communication != null)
-              {
-                  _communication.DataReceived += OnDataReceived;
-              }
+              // Step 3: Subscribe to the new connector's events
+              if (_connector != null)
+                  _connector.DataReceived += OnDataReceived;
           }
       }
 
-      public LoadportActor(LoadportActorConfig config, ICommunication communication)
+      // --------------- Constructor ---------------
+      // Inject via constructor; assign through property to trigger
+      // subscribe logic from the very first assignment.
+      public LoadportActor(
+          LoadportActorConfig config,
+          IConnector connector)
       {
-          Config = config ?? throw new ArgumentNullException(nameof(config));
-          Communication = communication ?? throw new ArgumentNullException(nameof(communication));
+          Config = config
+              ?? throw new ArgumentNullException(nameof(config));
+
+          // Assign through the property to trigger subscribe logic
+          Connector = connector
+              ?? throw new ArgumentNullException(nameof(connector));
       }
 
-      private void OnDataReceived(object sender, DataEventArgs e) { /* Handle */ }
+      // --------------- Event handler ---------------
+      private void OnDataReceived(
+          byte[] byData, int length) { /* Handle */ }
+  }
+  ```
+
+#### 模組生命週期與 Dispose 防護規則
+
+- **適用範圍**：任何模組只要實作 `IDisposable`，且在建構完成後仍提供公開或受保護的操作入口，**必須**實作明確的 disposed 狀態管理。
+- **Disposed 旗標**：模組**必須**使用 `int _disposed` 搭配 `Interlocked` 進行執行緒安全的單次釋放控制。
+- **ThrowIfDisposed 模式**：模組**必須**提供集中式 `ThrowIfDisposed()`（或語意等價的方法），並在所有公開操作入口、共用命令執行入口、以及可替換相依性的 setter 前呼叫，以防止 use-after-dispose。
+- **Dispose 冪等性**：`Dispose()` 與 `Dispose(bool disposing)` **必須**可重複呼叫且只執行一次實際清理。
+- **清理路徑限制**：`Dispose(bool disposing)` **不得**透過已受 `ThrowIfDisposed()` 保護的公開 setter 或公開方法執行清理；事件解除訂閱與欄位清空**必須**直接操作 private 欄位完成。
+- **晚到事件防護**：事件回呼、I/O callback、背景通知等非同步入口在物件已釋放後**必須**安全短路，不得再觸碰已釋放的 wait handle、connector 或快取狀態。
+- **測試要求**：模組單元測試**必須**驗證 Dispose 後操作會被拒絕、重複 Dispose 不會拋出非預期例外，且事件/回呼在釋放後不會造成例外或狀態破壞。
+- **範例模式**：
+  ```csharp
+  private int _disposed;
+
+  protected void ThrowIfDisposed()
+  {
+      if (Interlocked.CompareExchange(ref _disposed, 0, 0) != 0)
+      {
+          throw new ObjectDisposedException(GetType().FullName);
+      }
+  }
+
+  public void Dispose()
+  {
+      Dispose(true);
+      GC.SuppressFinalize(this);
+  }
+
+  protected virtual void Dispose(bool disposing)
+  {
+      if (Interlocked.Exchange(ref _disposed, 1) != 0)
+      {
+          return;
+      }
+
+      if (!disposing)
+      {
+          return;
+      }
+
+      if (_connector != null)
+      {
+          _connector.DataReceived -= OnDataReceived;
+          _connector = null;
+      }
+
+      _responseSignal.Dispose();
   }
   ```
 
@@ -167,9 +247,19 @@ Follow-up TODOs:
 - **不投機性搭建**：除非明確要求，不添加「未來防護」程式碼。
 - **漸進式演進**：僅在需求明確且使用者核准後引入複雜設計。
 
+#### 重複流程抽取規則
+
+- **真正重複的流程必須抽取**：當兩處以上程式碼執行相同或等價的作業流程，且差異僅在輸入參數、單一步驟策略或少量前後處理時，**必須**提取為具名 method。
+- **禁止複製貼上流程**：不得以複製貼上的方式維護多份相同流程，再於各處做微小修改。
+- **抽取目標**：優先抽取共享的流程骨架、驗證步驟、連線/清理生命週期、錯誤處理與記錄行為；呼叫端僅保留真正的差異點。
+- **命名要求**：抽取出的 method **必須**反映流程意圖，而非以 Step1、CommonHelper、TempMethod 等模糊名稱命名。
+- **例外條件**：只有在抽取後會明顯降低可讀性、造成不合理的參數膨脹，或扭曲領域語意時，才**可以**保留重複；保留時**必須**在審查中說明原因。
+- **理由**：此規則用於降低修正遺漏風險，確保流程邏輯只需維護一處，並讓硬體控制與通訊生命週期更易審查與測試。
+
 #### 可讀性要求
 
 - **函式分解**：將複雜流程拆分為具有明確職責的小函式。
+- **重複流程收斂**：若流程在多個方法間重複出現，**必須**優先收斂為共用 method，而不是僅以註解標示相似性。
 - **函式長度**：偏好方法在約 50 行以內。
 - **巢狀深度**：避免超過 3 層巢狀。
 
@@ -178,6 +268,14 @@ Follow-up TODOs:
 - **參數數量**：方法**不應**超過 4 個參數。
 - **避免複雜委派**：避免接受 Action/Delegate/Func 作為參數。
 - **明確回傳型別**：方法**必須**有明確的回傳型別。
+
+#### Lambda 使用規則
+
+- **預設避免 lambda**：如非必要，**必須**優先使用具名 private 方法、local function，或現有方法群組取代 lambda。
+- **允許條件**：只有在 lambda 能明顯降低樣板程式碼，且不會削弱命名語意、除錯可追蹤性或例外處理可讀性時，才**可以**使用。
+- **禁止情境**：涉及事件訂閱/解除訂閱、跨步驟流程控制、重複使用邏輯、需要單元測試驗證的分支，或包含多行副作用邏輯時，**不得**使用 lambda。
+- **審查要求**：保留 lambda 的程式碼變更**必須**能在程式碼審查中說明其必要性，以及為何具名方法或 local function 較差。
+- **理由**：此規則用於降低除錯成本、避免匿名委派造成 unsubscribe 困難，並維持硬體控制流程的可讀性與可追蹤性。
 
 ---
 
@@ -193,7 +291,8 @@ Follow-up TODOs:
     - 契約測試：驗證請求/回應格式。
 - **測試命名**：測試方法**必須**遵循 `MethodName_Scenario_ExpectedResult` 模式。
 - **模擬**：外部相依性**必須**在單元測試中被模擬。
-- **覆蓋率**：核心業務邏輯**應該**達到至少 80% 的單元測試覆蓋率。
+- **覆蓋率**：所有模組**應該**以 100% 單元測試覆蓋率為目標。核心業務邏輯**必須**達到至少 90% 覆蓋率。
+- **介面與類別合規**：測試程式碼**必須**僅針對使用者定義的介面與類別進行測試，**不得**為了提高覆蓋率而自行新增未經授權的輔助類別或介面。
 - **模組隔離**：測試**必須**模擬跨層相依性以確保隔離。
 - **測試檔案合併**：單一模組/類別的所有測試**必須**放在一個測試檔案中。
 
@@ -308,17 +407,22 @@ public enum ErrorCode : int
 
 ### 介面使用政策
 
-- **參考介面穩定性**：使用者提供的介面檔案**不得**被修改或拆分為多個檔案。
-- **HRESULT 參考穩定性**：`ExceptionManagement.HRESULT` 由參考系統定義，**不得**被修改、替換或模擬。
+- **參考介面穩定性**：使用者提供的參考介面檔案原則上**不得**被修改或拆分為多個檔案。
+- **功能限定例外**：僅當使用者對具名 feature 明確批准，且變更對象是該 feature 直接相關的參考介面時，才允許進行最小必要修改。
+- **例外範圍限制**：核准例外僅限該 feature 所需成員；**不得**一併調整不相關成員、命名、簽章或檔案結構。
+- **文件記錄義務**：任何核准例外**必須**同步記錄於該 feature 的 spec、plan、tasks，並明列核准來源、目標介面、允許修改成員範圍，以及明確排除的不可修改項目。
+- **不得自動推廣**：單一 feature 的核准例外**不得**推廣為其他 feature、其他介面或一般性修改許可。
+- **IConnector 參考穩定性**：`IConnector` 為專案 communication 定義的核心基礎設施介面，**不得**因任何 feature 例外而修改、替換、拆分或移除。
+- **HRESULT 參考穩定性**：`ExceptionManagement.HRESULT` 由參考系統定義，**不得**因任何 feature 例外而修改、替換或模擬。
 
 #### 必要基礎設施介面
 
-- **通訊介面**：`IConnector`（來自 `CommunicationChannel` 命名空間）
-    - 來源檔案：`CommChannel.cs`（第 27 行）
+- **通訊介面**：`IConnector`（來自 `Communication.Interface` 命名空間）
+    - 來源檔案：`Communication/Interface/IConnector.cs`
     - 所有外部通訊（RS232、TCP）**必須**透過此介面
 
 - **日誌介面**：`ILogUtility`（來自 `TDKLogUtility.Module` 命名空間）
-    - 來源檔案：`TDKLogUtility/Interface/AbstractLogUtility.cs`（第 22 行）
+    - 來源檔案：`TDKLogUtility/Interface/ILogUtility.cs`
     - TDKLogUtility 專案為**唯讀**，**不得**修改
 
 #### 相依性注入規則
@@ -335,7 +439,7 @@ public enum ErrorCode : int
 | TDKService | EXE/DLL | 服務層（Host 通訊、命令解析、回應格式化） | Host 協議 |
 | TDKController | DLL | 控制器與模組層 | 消費者 |
 | TDKLogUtility | DLL | 日誌工具（**唯讀**）| `ILogUtility` |
-| TDKCommunication | DLL | 傳輸介面（重用既有介面）| `IConnector` |
+| Communication | DLL | 傳輸介面（重用既有介面）| `IConnector` |
 
 ### 參考檔案管理
 
@@ -346,7 +450,7 @@ public enum ErrorCode : int
 ### 標準專案結構
 
 ```text
-[ProjectName]/
+ExampleProject/
 ├── GUI/
 ├── Config/
 ├── Module/
@@ -389,7 +493,7 @@ public ErrorCode MethodName(out string data, int param)
 **特殊規則**：
 
 - 查詢方法的 `out` 參數回傳 Loadport（TAS300）設備原始回應或處理後的狀態資料
-- Host 協議層（TDKService）負責將回傳值格式化為 `io <command> <status> [data]\r\n` 格式
+- Host 協議層（TDKService）負責將回傳值格式化為 `io <command> <status> {data}\r\n` 格式
 - Host 回應碼（如 `0x1`、`0xc017`、`0xc021`）由 TDKService 根據 `ErrorCode` 判斷產生，Module 層與 Controller 層不負責
 
 ### 分層規則
@@ -398,7 +502,7 @@ public ErrorCode MethodName(out string data, int param)
 Service 層（TDKService）— Host 通訊、命令解析、回應格式化
 Controller 層（TDKController/Controller）— Facade，組合與協調模組
 Module 層（TDKController 內的設備）— 硬體控制模組
-Infrastructure 層（TDKLogUtility、TDKCommunication、Config）
+Infrastructure 層（TDKLogUtility、Communication、Config）
 ```
 
 - **TDKService** 為最上層，負責與 Host 通訊（接收命令、發送回應）。
@@ -445,7 +549,7 @@ public enum ProgramState
 ```text
 AutoTest/
 ├── AutoTest.sln              # 管理所有 UT 專案的 Solution
-├── [ProjectName].Tests/
+├── ExampleProject.Tests/
 │   ├── Unit/
 │   ├── Integration/
 │   └── Helpers/
@@ -504,4 +608,8 @@ AutoTest/
 
 - 所有程式碼審查**必須**驗證是否符合憲章。
 - 任何偏離憲章的行為**必須**被記錄並核准。
+- 已核准的 feature 介面例外**必須**驗證 spec、plan、tasks 三者對目標介面、允許成員範圍與不可修改項目之記錄完全一致。
+- 任何新增或修改 `IDisposable` 模組的變更**必須**驗證 disposed 旗標、`ThrowIfDisposed()` 入口、防止晚到事件、以及重複 Dispose 的測試是否完整。
+- 任何新增 lambda 的變更**必須**驗證其用途符合「如非必要少用 lambda」原則，並確認具名方法、local function 或方法群組不是更清楚的選項。
+- 任何新增或保留重複流程的變更**必須**驗證其是否已抽成具名 method；若未抽取，審查紀錄**必須**說明抽取後為何會更差。
 - 定期審查憲章並在必要時提出修訂。

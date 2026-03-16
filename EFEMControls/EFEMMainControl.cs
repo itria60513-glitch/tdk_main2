@@ -22,12 +22,6 @@ namespace EFEM.GUIControls
     public partial class EFEMMainControl : UserControl
     {
         private string sHostStatus = "Not Initialized Yet";
-        private string sRobotStatus = "Not Initialized Yet";
-        private string sAlignerStatus = "Not Initialized Yet";
-        private string sDIO0Status = "Not Initialized Yet";
-        private string sFFUStatus = "Not Initialized Yet";
-
-        private bool _isOnlineMode = false; //Switch via GUI by user
         private FileUtilities.LoginType _curLoginType = FileUtilities.LoginType.None;
         private object _lockEFEMStatus = new object();
 
@@ -367,8 +361,6 @@ namespace EFEM.GUIControls
         }
 
         private object _lockLayout = new object();
-        private FileUtilities.LoginType lastLoginType = FileUtilities.LoginType.None;
-
         public void ChangeDisplayMode(bool forInit = false)
         {
             if (this.InvokeRequired)
@@ -408,7 +400,7 @@ namespace EFEM.GUIControls
                         if (currentShow != null && currentShow.Parent != null)
                             tabOperation.SelectedTab = currentShow;
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         //GUIBasic.Instance().WriteLog(ex, LogLevel.ERROR, "Failed to ChangeDisplayMode");
                     }

@@ -40,7 +40,7 @@ namespace EFEM.GUIControls
             {
                 DataTable_Update((bool)bReGetAll);
             }
-            catch (Exception e)
+            catch (Exception)
             {
          
             }
@@ -114,8 +114,6 @@ namespace EFEM.GUIControls
             }
             else
             {
-                HRESULT hr  = null;
-
                 try
                 {
                     DataTable_ClearData();                                    

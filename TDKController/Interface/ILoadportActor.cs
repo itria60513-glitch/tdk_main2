@@ -1,4 +1,5 @@
 using System;
+using Communication.Interface;
 
 namespace TDKController
 {
@@ -38,6 +39,15 @@ namespace TDKController
     public interface ILoadPortActor : IDisposable
     {
         // === Properties ===
+
+        /// <summary>
+        /// Gets or sets the communication channel to TAS300 hardware.
+        /// Replacing the connector at runtime automatically re-wires
+        /// the DataReceived event subscription inside the implementation.
+        /// External consumers MUST use this property to swap connectors;
+        /// the implementation handles unsubscribe/subscribe internally.
+        /// </summary>
+        IConnector Connector { get; set; }
 
         /// <summary>
         /// Cached SEMI format slot map string from last scan.

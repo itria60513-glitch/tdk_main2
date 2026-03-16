@@ -1,4 +1,4 @@
-namespace TDKController.Interface
+namespace TDKController
 {
     public interface ILoadportController
     {

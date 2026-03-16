@@ -80,6 +80,7 @@ namespace EFEM.GUIControls
             _ex = EFEM.ExceptionManagements.ExceptionManagement.GetUniqueInstance();
             _ExDictionary = _ex.GetExceptionDictionary(_objectName);
             _varCenter = EFEMVariableCenter.GetUniqueInstance();
+            _varCenter.VariableCenterCallback += VarCenter_VariableCenterCallback;
 
             _fu.OnWriteUserLogRequired += new WriteUserLogDel(_fu_OnWriteUserLogRequired);
 
@@ -196,6 +197,7 @@ namespace EFEM.GUIControls
 
             if (_varCenter != null)
             {
+                _varCenter.VariableCenterCallback -= VarCenter_VariableCenterCallback;
                 _varCenter.Dispose();
                 _varCenter = null;
             }
@@ -417,6 +419,15 @@ namespace EFEM.GUIControls
             WirteUserActionLog(LogHeadType.Info, message, "UserDataCenter");
         }
 
+        private void VarCenter_VariableCenterCallback(string variableName, object value)
+        {
+            VariableCenterCallbackEventHandler handler = VariableCenterCallback;
+            if (handler != null)
+            {
+                handler(variableName, value);
+            }
+        }
+
         public bool WriteUserMemo(string szLogMessage)
         {
             return WirteUserActionLog(LogHeadType.None, "[USER MEMO] " + szLogMessage, null); 
@@ -542,7 +553,15 @@ namespace EFEM.GUIControls
         protected string progress_key = "";
         protected static ManualResetEvent UserClick = new ManualResetEvent(false);
         private bool _isProgressAborted = false;
-        private string curProcessName = "";
+
+        private void NotifyProgressAbort()
+        {
+            ProgressAbort handler = ProgressAbortEvent;
+            if (handler != null)
+            {
+                handler();
+            }
+        }
 
         protected string KeyGenerate()
         {

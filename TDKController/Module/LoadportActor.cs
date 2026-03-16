@@ -222,12 +222,16 @@ namespace TDKController
         /// Communication channel to TAS300.
         /// Uses property setter pattern: unsubscribes from old connector,
         /// subscribes to new connector's DataReceived event.
+        /// Declared in ILoadPortActor so external consumers can replace
+        /// the connector at runtime without knowing the concrete type.
         /// </summary>
-        internal IConnector Connector
+        public IConnector Connector
         {
             get { return _connector; }
             set
             {
+                ThrowIfDisposed();
+
                 if (_connector != null)
                 {
                     _connector.DataReceived -= OnDataReceived;
@@ -302,8 +306,8 @@ namespace TDKController
         {
             Config = config ?? throw new ArgumentNullException(nameof(config));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            if (connector == null) throw new ArgumentNullException(nameof(connector));
-            Connector = connector;
+            // Assign through the property to trigger DataReceived subscribe logic
+            Connector = connector ?? throw new ArgumentNullException(nameof(connector));
         }
 
         #endregion
@@ -597,6 +601,8 @@ namespace TDKController
         {
             try
             {
+                ThrowIfDisposed();
+
                 if (ledNo < 1 || ledNo > LED_COUNT)
                 {
                     data = string.Empty;
@@ -738,6 +744,8 @@ namespace TDKController
         {
             try
             {
+                ThrowIfDisposed();
+
                 data = _cachedSlotMap ?? string.Empty;
                 return ErrorCode.Success;
             }
@@ -882,6 +890,8 @@ namespace TDKController
         /// <returns>ErrorCode based on handshake outcome.</returns>
         private ErrorCode SendMovSetCommand(string command)
         {
+            ThrowIfDisposed();
+
             if (_connector == null)
             {
                 _logger.WriteLog(LOG_KEY, LogHeadType.Error, "SendMovSetCommand: connector is null");
@@ -925,6 +935,8 @@ namespace TDKController
         /// <returns>ErrorCode based on ACK outcome.</returns>
         private ErrorCode SendAckOnlyCommand(string command)
         {
+            ThrowIfDisposed();
+
             if (_connector == null)
             {
                 _logger.WriteLog(LOG_KEY, LogHeadType.Error, "SendAckOnlyCommand: connector is null");
@@ -958,6 +970,9 @@ namespace TDKController
         {
             try
             {
+                if (Interlocked.CompareExchange(ref _disposed, 0, 0) != 0)
+                    return;
+
                 if (byData == null || length <= 0)
                     return;
 
@@ -1398,8 +1413,12 @@ namespace TDKController
 
             if (disposing)
             {
-                // 1. Unsubscribe IConnector events (property setter pattern)
-                Connector = null;
+                // 1. Unsubscribe connector events without re-entering the public setter.
+                if (_connector != null)
+                {
+                    _connector.DataReceived -= OnDataReceived;
+                    _connector = null;
+                }
 
                 // 2. Reset state machines
                 Interlocked.Exchange(ref _fxlState, FXL_NOTINIT);
@@ -1413,6 +1432,18 @@ namespace TDKController
                 // 4. Dispose signal handles
                 _ackSignal?.Dispose();
                 _infSignal?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Throws <see cref="ObjectDisposedException"/> when the actor has already been disposed.
+        /// Prevents command execution and connector replacement after cleanup.
+        /// </summary>
+        protected void ThrowIfDisposed()
+        {
+            if (Interlocked.CompareExchange(ref _disposed, 0, 0) != 0)
+            {
+                throw new ObjectDisposedException(GetType().FullName);
             }
         }
 

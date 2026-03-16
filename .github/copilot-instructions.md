@@ -11,8 +11,11 @@
 - **Naming**: PascalCase for classes/methods, camelCase for locals, `_camelCase` for private fields, `I`-prefix for interfaces.
 - **Error codes**: Return `int` (not enum). Use `const int` fields. `0` = success, `1-99` = info, `100-199` = warning, negative = error (module-specific ranges: E84 `-1..-99`, LoadportActor `-100..-199`, N2Purge `-200..-299`, CarrierIDReader `-300..-399`, LightCurtain `-400..-499`).
 - **Methods**: prefer <=50 lines, <=3 nesting levels, <=4 parameters. Public/internal methods must be wrapped in try-catch with logging before rethrow.
+- **Lambda**: avoid lambda unless it is clearly the simplest readable option. Prefer named private methods, local functions, or method groups, especially for event wiring, reusable logic, multi-step flow, and code that needs clear debugging.
+- **Repeated flow**: when the same operational flow appears in more than one place, extract it into a clearly named method. Do not keep copy-pasted flow variants unless extraction would materially hurt readability or distort the domain.
 - **Constructor injection**: null-check with `ArgumentNullException`, store as `private readonly`.
-- **Event dependencies**: use property with subscribe/unsubscribe pattern in setter (see `constitution_CH.md` Section 4.2).
+- **Event dependencies**: use property with subscribe/unsubscribe pattern in setter (see `.specify/memory/constitution.md`).
+- **IDisposable module lifecycle**: modules that implement `IDisposable` and still expose public operations must use an `int _disposed` flag with `Interlocked`, provide a `ThrowIfDisposed()`-style guard on public/shared operation entry points, keep `Dispose()` idempotent, and perform cleanup directly on private fields rather than via guarded public setters.
 - **Single `.cs` file per module**. No new classes or files without explicit user approval.
 - Reference patterns: `TDKLogUtility/Module/LogUtilityClient.cs` (DI, logging, error handling).
 
@@ -25,13 +28,13 @@ Controller Layer  (TDKController) - Facade exposing ILoadportController
     |
 Module Layer      (LoadportActor, N2Purge, CarrierIDReader, LightCurtain, E84)
     |
-Infrastructure    (TDKLogUtility [READ-ONLY], TDKCommunication, Config)
+Infrastructure    (TDKLogUtility [READ-ONLY], Communication, Config)
 ```
 
 - Upper layers may inject and use lower layers. Lower layers must NOT reference upper layers.
 - Same-layer modules interact through interfaces only.
 - **Read-only**: `TDKLogUtility/` project, `IConnector` interface, `HRESULT` type. Do not modify.
-- Key interfaces: `ILogUtility` at `TDKLogUtility/Interface/AbstractLogUtility.cs:22`, `IConnector` at `CommChannel.cs:27`.
+- Key interfaces: `ILogUtility` at `TDKLogUtility/Interface/ILogUtility.cs`, `IConnector` at `Communication/Interface/IConnector.cs`.
 
 ## Build and Test
 
@@ -50,7 +53,7 @@ Test naming: `MethodName_Scenario_ExpectedResult`. Target >=80% coverage for cor
 
 ## Project Conventions
 
-- **Governing document**: `constitution_CH.md` (v3.0.1) is authoritative. All development must comply.
+- **Governing document**: `.specify/memory/constitution.md` is authoritative. All development must comply.
 - **Reference implementation**: `lp204.cc` (~10,260 lines C++) is the existing loadport controller being ported to C#. All hardware interaction patterns originate here.
 
 ### TDK A Protocol (TAS300 Hardware)

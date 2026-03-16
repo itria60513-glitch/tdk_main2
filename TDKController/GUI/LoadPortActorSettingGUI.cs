@@ -11,7 +11,7 @@ using System.Windows.Forms;
 using EFEM.FileUtilities;
 using TDKController.GUI.ViewModels;
 
-namespace TDKLogUtility.GUI
+namespace TDKController.GUI
 {
     public partial class LoadPortSettingGUI : UserControl
     {
@@ -23,6 +23,7 @@ namespace TDKLogUtility.GUI
         public LoadPortSettingGUI(string select)
         {
             InitializeComponent();
+            _ctx = SynchronizationContext.Current;
             _viewModel = new LoadPortActorConfigGuiViewModel(_ctx);
             _commList = _fu.GetCommList();
             BindComboBox(cmb_LPActor, _commList);
@@ -102,7 +103,6 @@ namespace TDKLogUtility.GUI
 
         private void LoadportActorSetting(string select)
         {
-            bool isValid = true;
             LoadPortConfig loadPortSetting = _fu.GetLoadPortConfigSetting(select);
             _viewModel.Comm = loadPortSetting.Comm;
             _viewModel.ACKTimeouts = loadPortSetting.ACKTimeout;

@@ -823,7 +823,7 @@ namespace EFEM.GUIControls
                 EliteGUIKey.SetValue(name, data);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 return false;
             }
@@ -834,7 +834,7 @@ namespace EFEM.GUIControls
             {
                 this.SaveSettingInRegistry("loginUserId", "");
             }
-            catch (Exception ex)
+            catch (Exception)
             {
             }
         }

@@ -31,7 +31,19 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+[Gates determined based on constitution file, including any required validation for
+feature-scoped reference-interface exceptions. If such an exception exists, record
+the named feature, the exact interface, the minimal approved member changes, the
+user approval source, confirmation that spec.md / plan.md / tasks.md all capture
+the same scope, confirmation that immutable references such as IConnector and
+HRESULT remain unchanged, and when the feature touches an IDisposable module,
+verification that disposed-state ownership, ThrowIfDisposed entry points,
+cleanup-path direct field handling, late-event short-circuiting, and required
+unit tests are all planned explicitly. Also verify that any proposed lambda usage
+is necessary, limited in scope, and not clearer as a named method, local function,
+or method group. Also verify that any repeated operational flow is converged into
+a named method unless a documented readability or domain-specific reason prevents
+that extraction.]
 
 ## Project Structure
 

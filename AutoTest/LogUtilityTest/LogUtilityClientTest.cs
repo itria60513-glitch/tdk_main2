@@ -266,7 +266,7 @@ namespace LogUtilityUnitTest
         }
 
 
-        public void WriteLog(string szLogKey, LogHeadType enLogType, LogCateType enCateType, string szLogMessage, string szRemark = null)
+        public new void WriteLog(string szLogKey, LogHeadType enLogType, LogCateType enCateType, string szLogMessage, string szRemark = null)
         {
             Captured.Add((szLogKey, enLogType, enCateType, szLogMessage, szRemark));
         }
