@@ -20,7 +20,6 @@ namespace EFEM.GUIControls
     public partial class TDKConfigControl : UserControl
     {
         private UserControl _currentView;
-        private readonly Dictionary<NodeViewKind, Func<UserControl>> _viewFactory;
         private List<(string, int)> _commList = new List<(string, int)>();
         private List<string> _loadPortList = new List<string>();
         private List<string> _dioList = new List<string>();
@@ -43,7 +42,7 @@ namespace EFEM.GUIControls
 
             }
 
-            catch (Exception ex)
+            catch (Exception)
             {
 
             }

@@ -19,12 +19,19 @@ namespace EFEM.GUIControls
         private List<ListViewItem> items = new List<ListViewItem>();
         private List<ListViewItem> queueItems = new List<ListViewItem>(); //Pausing by user
         public event EventHandler OnTitleDoubleClick = null;
-        private bool _isCommMonitorTool = false;
-        private bool _showStatus = false;
         private bool _isSizeChanged = false;
 
         public delegate void delStatusBoxShow(bool isShow);
         public event delStatusBoxShow OnStatusBoxShowHide = null;
+
+        private void NotifyStatusBoxShowHide(bool isShow)
+        {
+            delStatusBoxShow handler = OnStatusBoxShowHide;
+            if (handler != null)
+            {
+                handler(isShow);
+            }
+        }
 
         public StatusMessageCtrl()
         {

@@ -23,6 +23,7 @@ namespace TDKController.GUI
         public N2NozzleSettingGUI(string select)
         {
             InitializeComponent();
+            _ctx = SynchronizationContext.Current;
             _viewModel = new N2NozzleConfigGuiViewModel(_ctx);
             _commList = _fu.GetCommList();
             BindComboBox(cmb_N2NComm, _commList);
@@ -95,9 +96,7 @@ namespace TDKController.GUI
 
         private void N2NozzleSetting(string select)
         {
-            bool isValid = true;
-            N2NozzleConfig n2Nozzle = new N2NozzleConfig();
-            n2Nozzle = _fu.GetN2NozzleConfigSetting(select);
+            N2NozzleConfig n2Nozzle = _fu.GetN2NozzleConfigSetting(select);
             _viewModel.Comm = n2Nozzle.Comm;
             ButtonValidationCheck();
 

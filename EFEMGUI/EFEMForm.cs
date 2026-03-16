@@ -52,7 +52,6 @@ namespace EFEMGUI
 
             GUIBasic.Instance().VariableCenterCallback +=new VariableCenterCallbackEventHandler(EFEMForm_VariableCenterCallback);
 
-            bool isRestarted = false;
             string[] cmdLine = System.Environment.GetCommandLineArgs();
             if (cmdLine != null)
             {
@@ -60,10 +59,6 @@ namespace EFEMGUI
                 for (int i=0;i<cmdLine.Length;i++)
                 {
                     GUIBasic.Instance().WriteLog(LogLevel.DEBUG, LogHeadType.Info, string.Format("cmd[{0}] = {1}", i, cmdLine[i])); 
-                    if (cmdLine[i].Trim().ToLower() == @"-restart")
-                    {
-                        isRestarted = true;
-                    }
                 }
             }
 

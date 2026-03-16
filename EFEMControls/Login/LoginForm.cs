@@ -23,7 +23,6 @@ namespace EFEM.GUIControls
 		private System.Windows.Forms.TextBox userName;
 		private System.Windows.Forms.TextBox password;
 		private Form ownerForm = null;
-        private UserXml db = null;
         private ComboBox comboBox_historyUser;
         private static UserLoginForm instance = null;
         private LoginType curLoginType = LoginType.None;

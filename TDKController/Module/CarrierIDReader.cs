@@ -147,16 +147,8 @@ namespace TDKController
         /// </summary>
         public virtual ErrorCode SetCarrierID(int page, string carrierID)
         {
-            try
-            {
-                ThrowIfDisposed();
-                return ErrorCode.CarrierIdError;
-            }
-            catch (Exception ex)
-            {
-                _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("SetCarrierID(page): exception - {0}", ex.Message));
-                throw;
-            }
+            ThrowIfDisposed();
+            return ErrorCode.CarrierIdError;
         }
 
         /// <summary>
@@ -184,19 +176,19 @@ namespace TDKController
         /// </param>
         protected virtual void Dispose(bool disposing)
         {
+            // Step 1: Atomically check and set the disposed flag to prevent double disposal.
+            if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            {
+                return;
+            }
+
+            if (!disposing)
+            {
+                return;
+            }
+
             try
             {
-                // Step 1: Atomically check and set the disposed flag to prevent double disposal.
-                if (Interlocked.Exchange(ref _disposed, 1) != 0)
-                {
-                    return;
-                }
-
-                if (!disposing)
-                {
-                    return;
-                }
-
                 // Step 2: Detach the event handler and release the connector reference.
                 if (_connector != null)
                 {
@@ -210,7 +202,6 @@ namespace TDKController
             catch (Exception ex)
             {
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("Dispose: exception - {0}", ex.Message));
-                throw;
             }
         }
 
@@ -434,6 +425,11 @@ namespace TDKController
         /// </summary>
         protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, Func<string, ErrorCode> writeOperation)
         {
+            ErrorCode ValidateCurrentPayload()
+            {
+                return validateOperation(carrierID);
+            }
+
             ErrorCode WriteCore()
             {
                 return writeOperation(carrierID);
@@ -443,11 +439,6 @@ namespace TDKController
                 validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPayload,
                 WriteCore,
                 "ExecuteWrite");
-
-            ErrorCode ValidateCurrentPayload()
-            {
-                return validateOperation(carrierID);
-            }
         }
 
         /// <summary>
