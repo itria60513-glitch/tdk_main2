@@ -197,25 +197,23 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Builds the Omron ASCII read command.
-        /// Format: "0110" (ASCII read opcode) + 8-char page bitmask + carriage return.
-        /// The "0110" prefix distinguishes ASCII-mode reads from HEX-mode "0100" reads.
-        /// Virtual to allow OmronHex to override with a different opcode.
+        /// Builds the Omron ASCII read payload.
+        /// Format: "0110" (ASCII read opcode) + 8-char page bitmask.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected virtual string BuildReadCommand(int page)
         {
-            return string.Format("0110{0}\r", BuildPageMask(page));
+            return string.Format("0110{0}", BuildPageMask(page));
         }
 
         /// <summary>
-        /// Builds the Omron ASCII write command.
-        /// Format: "0210" (ASCII write opcode) + 8-char page bitmask + ASCII payload + carriage return.
-        /// The "0210" prefix distinguishes ASCII-mode writes from HEX-mode "0200" writes.
-        /// Virtual to allow OmronHex to override with a different opcode.
+        /// Builds the Omron ASCII write payload.
+        /// Format: "0210" (ASCII write opcode) + 8-char page bitmask + ASCII payload.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected virtual string BuildWriteCommand(int page, string payload)
         {
-            return string.Format("0210{0}{1}\r", BuildPageMask(page), payload);
+            return string.Format("0210{0}{1}", BuildPageMask(page), payload);
         }
 
         /// <summary>

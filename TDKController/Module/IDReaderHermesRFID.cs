@@ -259,50 +259,21 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Builds the read command message: "X0" + 2-digit zero-padded page number.
-        /// The 'X' prefix identifies this as a read request in the Hermes protocol.
-        /// The message is then wrapped in a Hermes frame by PrepareCommand.
+        /// Builds the read command payload: "X0" + 2-digit zero-padded page number.
+        /// HermosProtocol wraps the payload into a full Hermes frame.
         /// </summary>
         private string BuildReadCommand(int page)
         {
-            return PrepareCommand(string.Format("X0{0:D2}", page));
+            return string.Format("X0{0:D2}", page);
         }
 
         /// <summary>
-        /// Builds the write command message: "W0" + 2-digit zero-padded page number + uppercase hex data.
-        /// The 'W' prefix identifies this as a write request in the Hermes protocol.
-        /// The message is then wrapped in a Hermes frame by PrepareCommand.
+        /// Builds the write command payload: "W0" + 2-digit zero-padded page number + uppercase hex data.
+        /// HermosProtocol wraps the payload into a full Hermes frame.
         /// </summary>
         private string BuildWriteCommand(int page, string carrierID)
         {
-            return PrepareCommand(string.Format("W0{0:D2}{1}", page, carrierID.ToUpperInvariant()));
-        }
-
-        /// <summary>
-        /// Wraps a message body into a complete Hermes protocol frame.
-        ///
-        /// Frame construction flow:
-        ///   1. Compute the message length as a 2-char hex string (e.g., 4 -> "04").
-        ///   2. Build the frame content: "S" + length + message + CR.
-        ///   3. Compute dual checksums (XOR and ADD) over the entire frame content.
-        ///   4. Append the 4-char checksum to complete the frame.
-        ///
-        /// Example: message "X005"
-        ///   -> length = "04"
-        ///   -> frame content = "S04X005\r"
-        ///   -> checksums = ComputeChecksums("S04X005\r") = "XXYY"
-        ///   -> final frame = "S04X005\rXXYY"
-        /// </summary>
-        private string PrepareCommand(string message)
-        {
-            // Step 1: Encode the message length as 2-char uppercase hex.
-            string length = message.Length.ToString("X2");
-
-            // Step 2: Build the frame content (everything before the checksum).
-            string frameWithoutChecksums = string.Concat("S", length, message, "\r");
-
-            // Step 3-4: Compute and append the dual checksums.
-            return frameWithoutChecksums + ComputeChecksums(frameWithoutChecksums);
+            return string.Format("W0{0:D2}{1}", page, carrierID.ToUpperInvariant());
         }
 
         /// <summary>

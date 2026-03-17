@@ -3,11 +3,8 @@ using System.Drawing;
 using System.Globalization;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using Communication.Connector;
 using Communication.Interface;
 using Communication.Protocol;
-using EFEM.DataCenter;
-using EFEM.FileUtilities;
 using LogUtility;
 using TDKController;
 using TDKLogUtility.Module;
@@ -151,9 +148,7 @@ namespace CarrierIDReader.ManualTestGui
             try
             {
                 IProtocol protocol = CreateProtocol(cboReaderType.SelectedIndex);
-                RS232Config rs232Config = new RS232Config(comPort, baudRate, parity, dataBits, stopBits);
-                RS232ConnectorConfig connectorConfig = new RS232ConnectorConfig(rs232Config);
-                _connector = new Rs232Connector(protocol, _logger, connectorConfig);
+                _connector = new SimpleRs232Connector(protocol, comPort, baudRate, parity, dataBits, stopBits);
 
                 CarrierIDReaderConfig readerConfig = new CarrierIDReaderConfig
                 {

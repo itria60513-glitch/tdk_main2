@@ -221,7 +221,7 @@ namespace Communication.Protocol
             {
                 return (false, buffer);
             }
-            byte[] result = new byte[buffer.Length - 8];
+            byte[] result = new byte[len - 8];
             Buffer.BlockCopy(buffer, 0, result, 0, result.Length);
             return (true, result);
 

@@ -42,6 +42,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="SimpleRs232Connector.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -71,10 +72,6 @@
     <ProjectReference Include="..\..\TDKLogUtility\TDKLogUtility.csproj">
       <Project>{B69FDD41-DBE2-4B2C-808D-E218CF89EBDD}</Project>
       <Name>TDKLogUtility</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\EFEMDataCenter\EFEMDataCenter.csproj">
-      <Project>{8F394E36-C16E-4BCF-BAE7-128AB15CF5B8}</Project>
-      <Name>EFEMDataCenter</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

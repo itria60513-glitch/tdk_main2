@@ -47,23 +47,25 @@ namespace Communication.Protocol
         #region Public Method
         public int AddOutFrameInfo(ref byte[] byteArray, int intSize)
         {
-            intSize += 1;
-            byte[] newArray = new byte[intSize];
-            for (int i = 0; i < intSize - 1; i++)
-                newArray[i] = byteArray[i];
-            byteArray = newArray;
-            byteArray[intSize - 1] = (byte)0xD;
-            return intSize;
+            if (byteArray == null || intSize < 0 || intSize > byteArray.Length)
+                return -1;
+
+            byte[] frame = new byte[intSize + 1];
+            Buffer.BlockCopy(byteArray, 0, frame, 0, intSize);
+            frame[intSize] = 0x0D;
+            byteArray = frame;
+            return intSize + 1;
         }
         public int AddOutFrameInfoWithFakeHeader(ref byte[] byteArray, int intSize)
         {
-            intSize += 1;
-            byte[] newArray = new byte[intSize];
-            for (int i = 0; i < intSize - 1; i++)
-                newArray[i] = byteArray[i];
-            byteArray = newArray;
-            byteArray[intSize - 1] = (byte)0xC;
-            return intSize;
+            if (byteArray == null || intSize < 0 || intSize > byteArray.Length)
+                return -1;
+
+            byte[] frame = new byte[intSize + 1];
+            Buffer.BlockCopy(byteArray, 0, frame, 0, intSize);
+            frame[intSize] = 0x0C;
+            byteArray = frame;
+            return intSize + 1;
         }
         public void Purge()
         {
@@ -119,9 +121,12 @@ namespace Communication.Protocol
         }
         public (bool,byte[]) VerifyInFrameStructure(byte[] buffer, int size)
         {
+            if (buffer == null || size <= 0 || size > buffer.Length)
+                return (false, buffer);
+
             if (buffer[size - 1] == 0x0D)
             {
-                byte[] result = new byte[buffer.Length - 1];
+                byte[] result = new byte[size - 1];
                 Buffer.BlockCopy(buffer, 0, result, 0, result.Length);
                 return (true, result);
             }

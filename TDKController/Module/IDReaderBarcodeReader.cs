@@ -46,11 +46,11 @@ namespace TDKController
         private const int MotorOffTimeoutMs = 3000;    // MOTOROFF is faster since the motor is already running.
         private const int ReadTimeoutMs = 5000;        // LON read trigger timeout.
 
-        // BL600 command strings (each terminated with CR).
-        private const string CommandMotorOn = "MOTORON\r";    // Activates the scanner motor.
-        private const string CommandMotorOff = "MOTOROFF\r";  // Deactivates the scanner motor.
-        private const string CommandRead = "LON\r";           // Triggers a barcode read.
-        private const string CommandStop = "LOFF\r";          // Cancels an in-progress read trigger.
+        // BL600 command payloads. BarcodeProtocol appends the frame terminator.
+        private const string CommandMotorOn = "MOTORON";    // Activates the scanner motor.
+        private const string CommandMotorOff = "MOTOROFF";  // Deactivates the scanner motor.
+        private const string CommandRead = "LON";           // Triggers a barcode read.
+        private const string CommandStop = "LOFF";          // Cancels an in-progress read trigger.
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderBarcodeReader"/> with the given
@@ -120,7 +120,7 @@ namespace TDKController
         /// Sends the BL600 MOTORON command and waits for the OK acknowledgement.
         ///
         /// Flow:
-        ///   1. Send "MOTORON\r" via SendAckCommand.
+        ///   1. Send the MOTORON payload via SendAckCommand.
         ///   2. Wait up to 10 seconds for the "OK" acknowledgement.
         ///   3. Return Success if "OK" received, or CarrierIdMotorOnFailed otherwise.
         /// </summary>
@@ -141,7 +141,7 @@ namespace TDKController
         /// Sends the BL600 MOTOROFF command and waits for the OK acknowledgement.
         ///
         /// Flow:
-        ///   1. Send "MOTOROFF\r" via SendAckCommand.
+        ///   1. Send the MOTOROFF payload via SendAckCommand.
         ///   2. Wait up to 3 seconds for the "OK" acknowledgement.
         ///   3. Return Success if "OK" received, or CarrierIdMotorOffFailed otherwise.
         /// </summary>
@@ -251,8 +251,8 @@ namespace TDKController
         /// Sends the LON read trigger and retrieves the raw barcode response.
         ///
         /// Flow:
-        ///   1. Send "LON\r" to trigger a barcode read with a 5-second timeout.
-        ///   2. If timeout occurs: send "LOFF\r" to cancel the trigger, then return timeout error.
+        ///   1. Send the LON payload to trigger a barcode read with a 5-second timeout.
+        ///   2. If timeout occurs: send the LOFF payload to cancel the trigger, then return timeout error.
         ///   3. If any other error: return the error immediately.
         ///   4. On success: trim the response and return the raw barcode string.
         /// Exceptions are logged here and rethrown to the public operation boundary.
