@@ -27,8 +27,8 @@ namespace TDKController
     /// Overall read flow (GetCarrierID):
     ///   1. GetCarrierID delegates to ExecuteRead (base class).
     ///   2. ExecuteRead acquires busy lock, validates page via ValidateReadRequest [1..30],
-    ///      connects to the reader, then invokes TryReadCarrierId.
-    ///   3. TryReadCarrierId builds the ASCII read command, sends it, and waits for a response.
+    ///      connects to the reader, then invokes ReadCarrierId.
+    ///   3. ReadCarrierId builds the ASCII read command, sends it, and waits for a response.
     ///   4. The response is validated by ParseCarrierIDReaderData (checks "00" prefix).
     ///   5. The data payload is extracted (strip "00" prefix) and verified as printable ASCII.
     ///   6. ExecuteRead disconnects and releases the busy lock.
@@ -92,14 +92,15 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead with ValidateReadRequest (page [1..30]) and TryReadCarrierId.
-        ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
+        ///   1. Delegates to the page-based ExecuteRead template method.
+        ///   2. The base class calls ValidateReadRequest (page [1..30]) and ReadCarrierId.
+        ///   3. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                return ExecuteRead(page, ValidateReadRequest, TryReadCarrierId, out carrierID);
+                return ExecuteRead(page, out carrierID);
             }
             catch (Exception ex)
             {
@@ -132,7 +133,7 @@ namespace TDKController
         /// <summary>
         /// Extracts the data payload from an Omron response by stripping the leading 2-char status prefix.
         /// For a success response "00ABCDEFGH...", this returns "ABCDEFGH...".
-        /// Used by TryReadCarrierId (and the OmronHex subclass) to isolate the actual data.
+        /// Used by ReadCarrierId (and the OmronHex subclass) to isolate the actual data.
         /// Returns empty string if the response has no payload (length <= 2).
         /// </summary>
         protected string ExtractPayload(string response)
@@ -153,7 +154,7 @@ namespace TDKController
         ///   4. Verify the payload contains only printable ASCII characters (0x20-0x7E).
         ///   5. Return the payload as the carrier ID string.
         /// </summary>
-        protected virtual ErrorCode TryReadCarrierId(int page, out string carrierID)
+        protected override ErrorCode ReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -348,7 +349,7 @@ namespace TDKController
         /// Called by ExecuteRead before the connection is established.
         /// Virtual to allow OmronHex to override with its own MaxPage.
         /// </summary>
-        protected virtual ErrorCode ValidateReadRequest(int page)
+        protected override ErrorCode ValidateReadRequest(int page)
         {
             return ValidatePage(page, MaxPage);
         }

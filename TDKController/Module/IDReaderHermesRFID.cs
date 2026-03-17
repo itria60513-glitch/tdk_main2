@@ -26,9 +26,9 @@ namespace TDKController
     ///
     /// Overall read flow (GetCarrierID):
     ///   1. GetCarrierID delegates to ExecuteRead (base class).
-    ///   2. ExecuteRead acquires busy lock, validates page via ValidatePage [1..17],
-    ///      connects, then invokes TryReadCarrierId.
-    ///   3. TryReadCarrierId builds a read command ("X0" + 2-digit page), wraps it in a Hermes frame,
+    ///   2. ExecuteRead acquires busy lock, validates page via ValidateReadRequest [1..17],
+    ///      connects, then invokes ReadCarrierId.
+    ///   3. ReadCarrierId builds a read command ("X0" + 2-digit page), wraps it in a Hermes frame,
     ///      and sends it. The response is parsed by ParseCarrierIDReaderData which validates
     ///      the frame structure, checksums, and response type.
     ///   4. The carrier ID is extracted from the parsed frame's message field (after skipping
@@ -50,7 +50,7 @@ namespace TDKController
 
         /// <summary>
         /// Caches the last successfully parsed Hermes frame from ParseCarrierIDReaderData.
-        /// Used by TryReadCarrierId to extract the data payload without re-parsing the response.
+        /// Used by ReadCarrierId to extract the data payload without re-parsing the response.
         /// Reset to null at the start of each ParseCarrierIDReaderData call.
         /// </summary>
         private HermesFrame? _lastParsedFrame;
@@ -86,7 +86,7 @@ namespace TDKController
         ///      d. Extract and validate the message body (must have '0' at position [1]).
         ///      e. Compute and compare XOR + ADD checksums against the frame's trailing 4 chars.
         ///   3. Check that the response type is supported ('x' = read, 'w' = write, 'v' = version).
-        ///   4. Cache the parsed frame in _lastParsedFrame for downstream use by TryReadCarrierId.
+        ///   4. Cache the parsed frame in _lastParsedFrame for downstream use by ReadCarrierId.
         ///   5. Return Success if all checks pass, or CarrierIdCommandFailed / CarrierIdChecksumError.
         /// </remarks>
         public override ErrorCode ParseCarrierIDReaderData(string command)
@@ -110,7 +110,7 @@ namespace TDKController
                     return ErrorCode.CarrierIdCommandFailed;
                 }
 
-                // Step 4: Cache the parsed frame for TryReadCarrierId to use.
+                // Step 4: Cache the parsed frame for ReadCarrierId to use.
                 _lastParsedFrame = frame;
                 return ErrorCode.Success;
             }
@@ -129,14 +129,15 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead with ValidatePage (page [1..17]) and TryReadCarrierId.
-        ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
+        ///   1. Delegates to the page-based ExecuteRead template method.
+        ///   2. The base class calls ValidateReadRequest (page [1..17]) and ReadCarrierId.
+        ///   3. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                return ExecuteRead(page, ValidatePage, TryReadCarrierId, out carrierID);
+                return ExecuteRead(page, out carrierID);
             }
             catch (Exception ex)
             {
@@ -168,7 +169,7 @@ namespace TDKController
         /// <summary>
         /// Validates that the current page number is within the allowed range [1, 17].
         /// </summary>
-        private ErrorCode ValidatePage(int page)
+        protected override ErrorCode ValidateReadRequest(int page)
         {
             return page >= 1 && page <= MaxPage
                 ? ErrorCode.Success
@@ -185,7 +186,7 @@ namespace TDKController
         private ErrorCode ValidateWritePayload(int page, string carrierID)
         {
             // Step 1: Validate the page number range.
-            ErrorCode pageResult = ValidatePage(page);
+            ErrorCode pageResult = ValidateReadRequest(page);
             if (pageResult != ErrorCode.Success)
             {
                 return pageResult;
@@ -213,7 +214,7 @@ namespace TDKController
         ///      - message[2..3] = page number, message[4..] = carrier ID data.
         ///   5. Return the extracted carrier ID, or CarrierIdCommandFailed if empty.
         /// </summary>
-        private ErrorCode TryReadCarrierId(int page, out string carrierID)
+        protected override ErrorCode ReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -363,7 +364,7 @@ namespace TDKController
 
         /// <summary>
         /// Checks whether the message is a read response (first character is 'x').
-        /// Used by TryReadCarrierId to confirm the response type before extracting data.
+        /// Used by ReadCarrierId to confirm the response type before extracting data.
         /// </summary>
         private static bool IsReadResponse(string message)
         {
@@ -398,7 +399,7 @@ namespace TDKController
 
         /// <summary>
         /// Lightweight struct that holds the parsed message body from a Hermes protocol frame.
-        /// Used to pass parsed data from ParseCarrierIDReaderData to TryReadCarrierId
+        /// Used to pass parsed data from ParseCarrierIDReaderData to ReadCarrierId
         /// via the _lastParsedFrame field.
         /// </summary>
         private struct HermesFrame

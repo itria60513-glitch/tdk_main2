@@ -40,12 +40,6 @@ namespace TDKController
         protected delegate ErrorCode ReadOperation(out string carrierID);
 
         /// <summary>
-        /// Delegate signature for protocol-specific page-based read operations.
-        /// Used by ExecuteRead page overloads to avoid lambda wrappers at call sites.
-        /// </summary>
-        protected delegate ErrorCode ReadPageOperation(int page, out string carrierID);
-
-        /// <summary>
         /// Delegate signature for protocol-specific page-based write operations.
         /// Used by ExecuteWrite page overloads to avoid lambda wrappers at call sites.
         /// </summary>
@@ -351,6 +345,25 @@ namespace TDKController
         }
 
         /// <summary>
+        /// Page-specific pre-read validation hook for readers that need to validate the target page.
+        /// Readers without page-specific validation can use the default Success implementation.
+        /// </summary>
+        protected virtual ErrorCode ValidateReadRequest(int page)
+        {
+            return ErrorCode.Success;
+        }
+
+        /// <summary>
+        /// Page-specific read hook invoked by the page-based ExecuteRead template method.
+        /// Page-aware readers override this to perform their actual protocol-specific read.
+        /// </summary>
+        protected virtual ErrorCode ReadCarrierId(int page, out string carrierID)
+        {
+            carrierID = string.Empty;
+            return ErrorCode.CarrierIdError;
+        }
+
+        /// <summary>
         /// Simplified ExecuteRead overload that skips validation.
         /// Delegates directly to the full overload with a null validation delegate.
         /// Used by readers that don't require pre-read validation (e.g., BarcodeReader).
@@ -361,22 +374,22 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Page-based ExecuteRead overload that accepts page-specific validation and read delegates.
-        /// This keeps subclass call sites concise while reusing the shared ExecuteRead lifecycle.
+        /// Page-based ExecuteRead template method.
+        /// The page-aware subclass only needs to override ValidateReadRequest and ReadCarrierId,
+        /// and the shared busy-lock / connection lifecycle remains centralized here.
         /// </summary>
-        protected ErrorCode ExecuteRead(int page, Func<int, ErrorCode> validateOperation, ReadPageOperation readOperation, out string carrierID)
+        protected ErrorCode ExecuteRead(int page, out string carrierID)
         {
-            ErrorCode ValidateCurrentPage()
+            string result = string.Empty;
+
+            ErrorCode ReadCurrentPage()
             {
-                return validateOperation(page);
+                return ReadCarrierId(page, out result);
             }
 
-            ErrorCode ReadCurrentPage(out string value)
-            {
-                return readOperation(page, out value);
-            }
-
-            return ExecuteRead(validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPage, ReadCurrentPage, out carrierID);
+            ErrorCode code = ExecuteOperation(() => ValidateReadRequest(page), ReadCurrentPage, "ExecuteRead");
+            carrierID = result;
+            return code;
         }
 
         /// <summary>

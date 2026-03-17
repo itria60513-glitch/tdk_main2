@@ -13,8 +13,8 @@ namespace TDKController
     /// Overall read flow:
     ///   1. GetCarrierID is called by the host application.
     ///   2. ExecuteRead (base class) acquires the busy lock, validates the page via
-    ///      ValidateReadRequest, connects to the reader, then invokes TryReadCarrierId.
-    ///   3. TryReadCarrierId builds a HEX-mode read command ("0100" + page mask),
+    ///      ValidateReadRequest, connects to the reader, then invokes ReadCarrierId.
+    ///   3. ReadCarrierId builds a HEX-mode read command ("0100" + page mask),
     ///      sends it to the reader, and waits for a response.
     ///   4. The response payload (after stripping the "00" status prefix) is validated
     ///      as an even-length hex string, then converted from hex bytes to an ASCII string.
@@ -63,7 +63,7 @@ namespace TDKController
         ///   6. Convert the hex payload to an ASCII string (each 2 hex chars = 1 ASCII byte).
         ///   7. Return the decoded carrier ID on success.
         /// </summary>
-        protected override ErrorCode TryReadCarrierId(int page, out string carrierID)
+        protected override ErrorCode ReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
