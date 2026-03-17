@@ -19,9 +19,9 @@ namespace TDKController
     ///     which enforce a consistent operation flow:
     ///       1. Acquire busy lock (thread-safe, one operation at a time).
     ///       2. Run optional validation (page range, payload format, etc.).
-    ///       3. Connect to the reader hardware via IConnector.
+    ///       3. Ensure a connection is available for the operation.
     ///       4. Execute the protocol-specific read/write operation.
-    ///       5. Disconnect from the reader and release the busy lock (in finally block).
+    ///       5. Release only the connection opened by this class, then release the busy lock.
     ///
     /// Asynchronous response handling:
     ///   - The IConnector.DataReceived event fires OnDataReceived, which stores the raw
@@ -388,10 +388,11 @@ namespace TDKController
         ///      - If busy: return CarrierIdBusy immediately.
         ///   2. Run the optional validation operation (e.g., page range check).
         ///      - If validation fails: log error and return the validation error code.
-        ///   3. Connect to the reader hardware via ConnectReader.
-        ///      - If connection fails: return CarrierIdConnectFailed.
+        ///   3. Ensure the connector is available. If the host already connected it,
+        ///      reuse that connection. Otherwise connect here.
         ///   4. Invoke the protocol-specific readOperation to perform the actual read.
-        ///   5. (finally) Disconnect from the reader if connected, then release the busy lock.
+        ///   5. (finally) Disconnect only when this method opened the connection,
+        ///      then release the busy lock.
         ///
         /// The finally block guarantees cleanup even if the read operation throws an exception.
         /// </summary>
@@ -404,7 +405,7 @@ namespace TDKController
                 return readOperation(out result);
             }
 
-            ErrorCode code = ExecuteConnectedOperation(validateOperation, ReadCore, "ExecuteRead");
+            ErrorCode code = ExecuteOperation(validateOperation, ReadCore, "ExecuteRead");
             carrierID = result;
             return code;
         }
@@ -418,10 +419,11 @@ namespace TDKController
         ///      - If busy: return CarrierIdBusy immediately.
         ///   2. Run the optional validation operation (e.g., page range + payload format check).
         ///      - If validation fails: log error and return the validation error code.
-        ///   3. Connect to the reader hardware via ConnectReader.
-        ///      - If connection fails: return CarrierIdConnectFailed.
+        ///   3. Ensure the connector is available. If the host already connected it,
+        ///      reuse that connection. Otherwise connect here.
         ///   4. Invoke the protocol-specific writeOperation to send the write command.
-        ///   5. (finally) Disconnect from the reader if connected, then release the busy lock.
+        ///   5. (finally) Disconnect only when this method opened the connection,
+        ///      then release the busy lock.
         /// </summary>
         protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, Func<string, ErrorCode> writeOperation)
         {
@@ -435,7 +437,7 @@ namespace TDKController
                 return writeOperation(carrierID);
             }
 
-            return ExecuteConnectedOperation(
+            return ExecuteOperation(
                 validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPayload,
                 WriteCore,
                 "ExecuteWrite");
@@ -461,10 +463,10 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Shared lifecycle template for carrier ID operations that require validation, connection,
-        /// and deterministic cleanup around the protocol-specific work.
+        /// Shared lifecycle template for carrier ID operations that require validation,
+        /// conditional connection management, and deterministic busy-lock cleanup.
         /// </summary>
-        private ErrorCode ExecuteConnectedOperation(Func<ErrorCode> validateOperation, Func<ErrorCode> operation, string operationName)
+        private ErrorCode ExecuteOperation(Func<ErrorCode> validateOperation, Func<ErrorCode> operation, string operationName)
         {
             ThrowIfDisposed();
 
@@ -473,7 +475,7 @@ namespace TDKController
                 throw new ArgumentNullException(nameof(operation));
             }
 
-            bool connected = false;
+            bool openedConnection = false;
 
             ErrorCode busyResult = AcquireBusy();
             if (busyResult != ErrorCode.Success)
@@ -490,18 +492,28 @@ namespace TDKController
                     return validationResult;
                 }
 
-                ErrorCode connectResult = ConnectReader();
-                if (connectResult != ErrorCode.Success)
+                if (_connector == null)
                 {
-                    return connectResult;
+                    _logger.WriteLog(LogKey, LogHeadType.Error, string.Format("{0}: connector is null", operationName));
+                    return ErrorCode.CarrierIdConnectFailed;
                 }
 
-                connected = true;
+                if (!_connector.IsConnected)
+                {
+                    ErrorCode connectResult = ConnectReader();
+                    if (connectResult != ErrorCode.Success)
+                    {
+                        return connectResult;
+                    }
+
+                    openedConnection = true;
+                }
+
                 return operation();
             }
             finally
             {
-                if (connected)
+                if (openedConnection)
                 {
                     DisconnectReader();
                 }
