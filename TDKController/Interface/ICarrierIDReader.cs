@@ -3,10 +3,20 @@ using Communication.Interface;
 namespace TDKController
 {
     /// <summary>
+    /// Delegate for carrier ID value change notification.
+    /// </summary>
+    public delegate void CarrierIDChangedEventHandler();
+
+    /// <summary>
     /// Defines the unified contract for carrier identifier reader operations.
     /// </summary>
     public interface ICarrierIDReader
     {
+        /// <summary>
+        /// Gets the shared carrier ID reader configuration.
+        /// </summary>
+        CarrierIDReaderConfig Config { get; }
+
         /// <summary>
         /// Gets the active carrier ID reader type.
         /// </summary>
@@ -21,11 +31,15 @@ namespace TDKController
         IConnector Connector { get; set; }
 
         /// <summary>
-        /// Parses raw device response data and updates reader state.
+        /// Gets the last known carrier identifier value cached by the reader.
+        /// Empty when no successful read or write has been completed yet.
         /// </summary>
-        /// <param name="command">Raw device response payload.</param>
-        /// <returns>The parsing result.</returns>
-        ErrorCode ParseCarrierIDReaderData(string command);
+        string CarrierID { get; }
+
+        /// <summary>
+        /// Raised when the cached <see cref="CarrierID"/> value changes after a successful read or write.
+        /// </summary>
+        event CarrierIDChangedEventHandler CarrierIDChanged;
 
         /// <summary>
         /// Reads the carrier identifier from the specified reader page.

@@ -27,8 +27,8 @@ namespace TDKController
     /// Overall read flow (GetCarrierID):
     ///   1. GetCarrierID delegates to ExecuteRead (base class).
     ///   2. ExecuteRead acquires busy lock, validates page via ValidateReadRequest [1..30],
-    ///      connects to the reader, then invokes TryReadCarrierId.
-    ///   3. TryReadCarrierId builds the ASCII read command, sends it, and waits for a response.
+    ///      connects to the reader, then invokes ReadCarrierId.
+    ///   3. ReadCarrierId builds the ASCII read command, sends it, and waits for a response.
     ///   4. The response is validated by ParseCarrierIDReaderData (checks "00" prefix).
     ///   5. The data payload is extracted (strip "00" prefix) and verified as printable ASCII.
     ///   6. ExecuteRead disconnects and releases the busy lock.
@@ -42,8 +42,14 @@ namespace TDKController
     /// </summary>
     public class IDReaderOmronASCII : CarrierIDReader
     {
+        #region Constants
+
         // Maximum supported RFID memory page number for the Omron ASCII reader.
         private const int MaxPage = 30;
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderOmronASCII"/> with the given
@@ -62,6 +68,10 @@ namespace TDKController
             get { return CarrierIDReaderType.OmronASCII; }
         }
 
+        #endregion
+
+        #region Response Parsing
+
         /// <inheritdoc />
         /// <remarks>
         /// Validates Omron responses. Called by SendCommand (base class) after each response arrives.
@@ -72,7 +82,7 @@ namespace TDKController
         ///      - "00" prefix: return Success (payload follows after the prefix).
         ///      - Other prefix: return CarrierIdCommandFailed (error code from reader).
         /// </remarks>
-        public override ErrorCode ParseCarrierIDReaderData(string command)
+        protected override ErrorCode ParseCarrierIDReaderData(string command)
         {
             try
             {
@@ -89,17 +99,22 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Public Operations
+
         /// <inheritdoc />
         /// <remarks>
         /// Read flow entry point:
-        ///   1. Delegates to ExecuteRead with ValidateReadRequest (page [1..30]) and TryReadCarrierId.
-        ///   2. ExecuteRead handles busy lock, validation, connection, and cleanup.
+        ///   1. Delegates to the page-based ExecuteRead template method.
+        ///   2. The base class calls ValidateReadRequest (page [1..30]) and ReadCarrierId.
+        ///   3. ExecuteRead handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode GetCarrierID(int page, out string carrierID)
         {
             try
             {
-                return ExecuteRead(page, ValidateReadRequest, TryReadCarrierId, out carrierID);
+                return ExecuteRead(page, out carrierID);
             }
             catch (Exception ex)
             {
@@ -111,16 +126,17 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Write flow entry point:
-        ///   1. Delegates to ExecuteWrite with ValidateWriteRequest and WriteCarrierId.
-        ///   2. ValidateWriteRequest checks page [1..30] and that the carrier ID is a
-        ///      16-char printable ASCII string.
-        ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
+        ///   1. SetCarrierID delegates to ExecuteWrite (base class).
+        ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWriteRequest
+        ///      (page [1..30], payload must be 16 printable ASCII chars), connects, invokes WriteCarrierId.
+        ///   3. WriteCarrierId builds the ASCII write command and sends it.
+        ///   4. ExecuteWrite disconnects and releases the busy lock.
         /// </remarks>
         public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                return ExecuteWrite(page, carrierID, ValidateWriteRequest, WriteCarrierId);
+                return ExecuteWrite(page, carrierID);
             }
             catch (Exception ex)
             {
@@ -129,10 +145,14 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Payload Helpers
+
         /// <summary>
         /// Extracts the data payload from an Omron response by stripping the leading 2-char status prefix.
         /// For a success response "00ABCDEFGH...", this returns "ABCDEFGH...".
-        /// Used by TryReadCarrierId (and the OmronHex subclass) to isolate the actual data.
+        /// Used by ReadCarrierId (and the OmronHex subclass) to isolate the actual data.
         /// Returns empty string if the response has no payload (length <= 2).
         /// </summary>
         protected string ExtractPayload(string response)
@@ -141,6 +161,10 @@ namespace TDKController
             // Strip the 2-char status prefix ("00" for success) to get the raw data payload.
             return normalized.Length <= 2 ? string.Empty : normalized.Substring(2);
         }
+
+        #endregion
+
+        #region Read And Write Workflow
 
         /// <summary>
         /// Core read operation for the Omron ASCII reader.
@@ -153,7 +177,7 @@ namespace TDKController
         ///   4. Verify the payload contains only printable ASCII characters (0x20-0x7E).
         ///   5. Return the payload as the carrier ID string.
         /// </summary>
-        protected virtual ErrorCode TryReadCarrierId(int page, out string carrierID)
+        protected override ErrorCode ReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -189,34 +213,40 @@ namespace TDKController
         ///   2. Send the command and wait for a response (validated by ParseCarrierIDReaderData
         ///      which checks for the "00" success prefix).
         /// </summary>
-        protected virtual ErrorCode WriteCarrierId(int page, string carrierID)
+        protected override ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the ASCII-mode write command.
             return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
+        #endregion
+
+        #region Command Builders
+
         /// <summary>
-        /// Builds the Omron ASCII read command.
-        /// Format: "0110" (ASCII read opcode) + 8-char page bitmask + carriage return.
-        /// The "0110" prefix distinguishes ASCII-mode reads from HEX-mode "0100" reads.
-        /// Virtual to allow OmronHex to override with a different opcode.
+        /// Builds the Omron ASCII read payload.
+        /// Format: "0110" (ASCII read opcode) + 8-char page bitmask.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected virtual string BuildReadCommand(int page)
         {
-            return string.Format("0110{0}\r", BuildPageMask(page));
+            return string.Format("0110{0}", BuildPageMask(page));
         }
 
         /// <summary>
-        /// Builds the Omron ASCII write command.
-        /// Format: "0210" (ASCII write opcode) + 8-char page bitmask + ASCII payload + carriage return.
-        /// The "0210" prefix distinguishes ASCII-mode writes from HEX-mode "0200" writes.
-        /// Virtual to allow OmronHex to override with a different opcode.
+        /// Builds the Omron ASCII write payload.
+        /// Format: "0210" (ASCII write opcode) + 8-char page bitmask + ASCII payload.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected virtual string BuildWriteCommand(int page, string payload)
         {
-            return string.Format("0210{0}{1}\r", BuildPageMask(page), payload);
+            return string.Format("0210{0}{1}", BuildPageMask(page), payload);
         }
+
+        #endregion
+
+        #region Page Mask Helpers
 
         /// <summary>
         /// Maps a logical page number (1-30) to the 8-character bitmask used by Omron readers.
@@ -334,6 +364,10 @@ namespace TDKController
             return new string(frame);
         }
 
+        #endregion
+
+        #region Validation
+
         /// <summary>
         /// Validates that the supplied page number is within the allowed range [1, maxPage].
         /// Shared by both ASCII and HEX subclasses (each passes its own MaxPage constant).
@@ -350,7 +384,7 @@ namespace TDKController
         /// Called by ExecuteRead before the connection is established.
         /// Virtual to allow OmronHex to override with its own MaxPage.
         /// </summary>
-        protected virtual ErrorCode ValidateReadRequest(int page)
+        protected override ErrorCode ValidateReadRequest(int page)
         {
             return ValidatePage(page, MaxPage);
         }
@@ -360,7 +394,7 @@ namespace TDKController
         /// Virtual to allow OmronHex to override with hex-specific validation.
         /// Called by ExecuteWrite before the connection is established.
         /// </summary>
-        protected virtual ErrorCode ValidateWriteRequest(int page, string carrierID)
+        protected override ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
             return ValidateAsciiWrite(page, carrierID);
         }
@@ -390,5 +424,7 @@ namespace TDKController
 
             return ErrorCode.Success;
         }
+
+        #endregion
     }
 }

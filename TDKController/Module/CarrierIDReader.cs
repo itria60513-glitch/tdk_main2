@@ -19,9 +19,9 @@ namespace TDKController
     ///     which enforce a consistent operation flow:
     ///       1. Acquire busy lock (thread-safe, one operation at a time).
     ///       2. Run optional validation (page range, payload format, etc.).
-    ///       3. Connect to the reader hardware via IConnector.
+    ///       3. Ensure a connection is available for the operation.
     ///       4. Execute the protocol-specific read/write operation.
-    ///       5. Disconnect from the reader and release the busy lock (in finally block).
+    ///       5. Release only the connection opened by this class, then release the busy lock.
     ///
     /// Asynchronous response handling:
     ///   - The IConnector.DataReceived event fires OnDataReceived, which stores the raw
@@ -31,31 +31,20 @@ namespace TDKController
     /// </summary>
     public abstract class CarrierIDReader : ICarrierIDReader, IDisposable
     {
+        #region Constants And Fields
+
         private const string LogKey = "CarrierIDReader";
 
-        /// <summary>
-        /// Delegate signature for protocol-specific read operations.
-        /// Used by ExecuteRead to invoke the subclass's core read logic.
-        /// </summary>
-        protected delegate ErrorCode ReadOperation(out string carrierID);
-
-        /// <summary>
-        /// Delegate signature for protocol-specific page-based read operations.
-        /// Used by ExecuteRead page overloads to avoid lambda wrappers at call sites.
-        /// </summary>
-        protected delegate ErrorCode ReadPageOperation(int page, out string carrierID);
-
-        /// <summary>
-        /// Delegate signature for protocol-specific page-based write operations.
-        /// Used by ExecuteWrite page overloads to avoid lambda wrappers at call sites.
-        /// </summary>
-        protected delegate ErrorCode WritePageOperation(int page, string carrierID);
-
         private IConnector _connector;
+        private string _carrierID = string.Empty;
         // Thread-safe busy flag: 0 = idle, 1 = busy. Prevents concurrent reader access.
         private int _busyFlag;
         // Thread-safe disposed flag: 0 = active, 1 = disposed. Ensures single disposal.
         private int _disposed;
+
+        #endregion
+
+        #region Construction And Core Properties
 
         /// <summary>
         /// Initializes the base carrier ID reader.
@@ -75,7 +64,7 @@ namespace TDKController
         }
 
         /// <summary>Reader configuration (timeout, retry count, and other shared settings).</summary>
-        protected CarrierIDReaderConfig Config { get; }
+        public CarrierIDReaderConfig Config { get; }
 
         /// <summary>Logger instance for writing diagnostic and error messages.</summary>
         protected readonly ILogUtility _logger;
@@ -92,6 +81,19 @@ namespace TDKController
         /// Written by OnDataReceived, read by SendCommand after _responseSignal is set.
         /// </summary>
         protected string LastResponse { get; set; }
+
+        /// <summary>
+        /// Gets the last known carrier identifier value cached by this reader instance.
+        /// </summary>
+        public string CarrierID
+        {
+            get { return _carrierID; }
+        }
+
+        /// <summary>
+        /// Raised when <see cref="CarrierID"/> changes after a successful read or write.
+        /// </summary>
+        public event CarrierIDChangedEventHandler CarrierIDChanged;
 
         /// <summary>Identifies the specific reader protocol (BarcodeReader, HermesRFID, OmronASCII, OmronHex).</summary>
         public abstract CarrierIDReaderType CarrierIDReaderType { get; }
@@ -128,12 +130,16 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Protocol Contract
+
         /// <summary>
         /// Protocol-specific response parser. Called by SendCommand after a response is received.
         /// Each subclass implements its own validation logic (e.g., checking for "00" prefix,
         /// "OK"/"NG" responses, or Hermes frame checksums).
         /// </summary>
-        public abstract ErrorCode ParseCarrierIDReaderData(string command);
+        protected abstract ErrorCode ParseCarrierIDReaderData(string command);
 
         /// <summary>
         /// Protocol-specific carrier ID read operation. Entry point called by the host application.
@@ -150,6 +156,10 @@ namespace TDKController
             ThrowIfDisposed();
             return ErrorCode.CarrierIdError;
         }
+
+        #endregion
+
+        #region Disposal
 
         /// <summary>
         /// Releases all resources held by this reader instance.
@@ -204,6 +214,10 @@ namespace TDKController
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("Dispose: exception - {0}", ex.Message));
             }
         }
+
+        #endregion
+
+        #region Busy And Connection Control
 
         /// <summary>
         /// Attempts to acquire the busy lock using an atomic compare-and-swap.
@@ -350,130 +364,192 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Template Methods
+
         /// <summary>
-        /// Simplified ExecuteRead overload that skips validation.
-        /// Delegates directly to the full overload with a null validation delegate.
-        /// Used by readers that don't require pre-read validation (e.g., BarcodeReader).
+        /// Page-specific pre-read validation hook for readers that need to validate the target page.
+        /// Readers without page-specific validation can use the default Success implementation.
         /// </summary>
-        protected ErrorCode ExecuteRead(ReadOperation readOperation, out string carrierID)
+        protected virtual ErrorCode ValidateReadRequest(int page)
         {
-            return ExecuteRead(null, readOperation, out carrierID);
+            return ErrorCode.Success;
         }
 
         /// <summary>
-        /// Page-based ExecuteRead overload that accepts page-specific validation and read delegates.
-        /// This keeps subclass call sites concise while reusing the shared ExecuteRead lifecycle.
+        /// Non-page pre-read validation hook for readers that do not care about page input.
         /// </summary>
-        protected ErrorCode ExecuteRead(int page, Func<int, ErrorCode> validateOperation, ReadPageOperation readOperation, out string carrierID)
+        protected virtual ErrorCode ValidateReadRequest()
         {
-            ErrorCode ValidateCurrentPage()
-            {
-                return validateOperation(page);
-            }
-
-            ErrorCode ReadCurrentPage(out string value)
-            {
-                return readOperation(page, out value);
-            }
-
-            return ExecuteRead(validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPage, ReadCurrentPage, out carrierID);
+            return ErrorCode.Success;
         }
 
         /// <summary>
-        /// Template method that orchestrates the full carrier ID read lifecycle.
-        /// All subclasses use this method to ensure consistent locking, connection, and cleanup.
-        ///
-        /// Flow:
-        ///   1. Acquire the busy lock to prevent concurrent reader access.
-        ///      - If busy: return CarrierIdBusy immediately.
-        ///   2. Run the optional validation operation (e.g., page range check).
-        ///      - If validation fails: log error and return the validation error code.
-        ///   3. Connect to the reader hardware via ConnectReader.
-        ///      - If connection fails: return CarrierIdConnectFailed.
-        ///   4. Invoke the protocol-specific readOperation to perform the actual read.
-        ///   5. (finally) Disconnect from the reader if connected, then release the busy lock.
-        ///
-        /// The finally block guarantees cleanup even if the read operation throws an exception.
+        /// Non-page read hook invoked by the simple ExecuteRead template method.
+        /// Readers such as BarcodeReader override this to provide their core read logic.
         /// </summary>
-        protected ErrorCode ExecuteRead(Func<ErrorCode> validateOperation, ReadOperation readOperation, out string carrierID)
+        protected virtual ErrorCode ReadCarrierId(out string carrierID)
         {
-            string result = string.Empty;
-
-            ErrorCode ReadCore()
-            {
-                return readOperation(out result);
-            }
-
-            ErrorCode code = ExecuteConnectedOperation(validateOperation, ReadCore, "ExecuteRead");
-            carrierID = result;
-            return code;
+            carrierID = string.Empty;
+            return ErrorCode.CarrierIdError;
         }
 
         /// <summary>
-        /// Template method that orchestrates the full carrier ID write lifecycle.
-        /// Mirrors ExecuteRead but passes the carrier ID string to the validation and write operations.
-        ///
-        /// Flow:
-        ///   1. Acquire the busy lock to prevent concurrent reader access.
-        ///      - If busy: return CarrierIdBusy immediately.
-        ///   2. Run the optional validation operation (e.g., page range + payload format check).
-        ///      - If validation fails: log error and return the validation error code.
-        ///   3. Connect to the reader hardware via ConnectReader.
-        ///      - If connection fails: return CarrierIdConnectFailed.
-        ///   4. Invoke the protocol-specific writeOperation to send the write command.
-        ///   5. (finally) Disconnect from the reader if connected, then release the busy lock.
+        /// Page-specific read hook invoked by the page-based ExecuteRead template method.
+        /// Page-aware readers override this to perform their actual protocol-specific read.
         /// </summary>
-        protected ErrorCode ExecuteWrite(string carrierID, Func<string, ErrorCode> validateOperation, Func<string, ErrorCode> writeOperation)
+        protected virtual ErrorCode ReadCarrierId(int page, out string carrierID)
         {
-            ErrorCode ValidateCurrentPayload()
-            {
-                return validateOperation(carrierID);
-            }
-
-            ErrorCode WriteCore()
-            {
-                return writeOperation(carrierID);
-            }
-
-            return ExecuteConnectedOperation(
-                validateOperation == null ? null : (Func<ErrorCode>)ValidateCurrentPayload,
-                WriteCore,
-                "ExecuteWrite");
+            carrierID = string.Empty;
+            return ErrorCode.CarrierIdError;
         }
 
         /// <summary>
-        /// Page-based ExecuteWrite overload that accepts page-specific validation and write delegates.
-        /// This keeps subclass call sites concise while reusing the shared ExecuteWrite lifecycle.
+        /// Page-specific pre-write validation hook for readers that support writing.
         /// </summary>
-        protected ErrorCode ExecuteWrite(int page, string carrierID, Func<int, string, ErrorCode> validateOperation, WritePageOperation writeOperation)
+        protected virtual ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
-            ErrorCode ValidateCurrentPage(string value)
-            {
-                return validateOperation(page, value);
-            }
-
-            ErrorCode WriteCurrentPage(string value)
-            {
-                return writeOperation(page, value);
-            }
-
-            return ExecuteWrite(carrierID, validateOperation == null ? null : (Func<string, ErrorCode>)ValidateCurrentPage, WriteCurrentPage);
+            return ErrorCode.Success;
         }
 
         /// <summary>
-        /// Shared lifecycle template for carrier ID operations that require validation, connection,
-        /// and deterministic cleanup around the protocol-specific work.
+        /// Page-specific write hook invoked by the page-based ExecuteWrite template method.
         /// </summary>
-        private ErrorCode ExecuteConnectedOperation(Func<ErrorCode> validateOperation, Func<ErrorCode> operation, string operationName)
+        protected virtual ErrorCode WriteCarrierId(int page, string carrierID)
+        {
+            return ErrorCode.CarrierIdError;
+        }
+
+        #endregion
+
+        #region Shared Operation Flow
+
+        /// <summary>
+        /// Simplified ExecuteRead template method for readers without page-specific behavior.
+        /// </summary>
+        protected ErrorCode ExecuteRead(out string carrierID)
         {
             ThrowIfDisposed();
 
-            if (operation == null)
+            carrierID = string.Empty;
+            bool openedConnection;
+
+            ErrorCode beginResult = TryBeginOperation("ExecuteRead", out openedConnection);
+            if (beginResult != ErrorCode.Success)
             {
-                throw new ArgumentNullException(nameof(operation));
+                return beginResult;
             }
 
-            bool connected = false;
+            try
+            {
+                ErrorCode validationResult = ValidateReadRequest();
+                if (validationResult != ErrorCode.Success)
+                {
+                    LogValidationFailure(validationResult, "ExecuteRead");
+                    return validationResult;
+                }
+
+                ErrorCode readResult = ReadCarrierId(out carrierID);
+                if (readResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return readResult;
+            }
+            finally
+            {
+                EndOperation(openedConnection);
+            }
+        }
+
+        /// <summary>
+        /// Page-based ExecuteRead template method.
+        /// The page-aware subclass only needs to override ValidateReadRequest and ReadCarrierId,
+        /// and the shared busy-lock / connection lifecycle remains centralized here.
+        /// </summary>
+        protected ErrorCode ExecuteRead(int page, out string carrierID)
+        {
+            ThrowIfDisposed();
+
+            carrierID = string.Empty;
+            bool openedConnection;
+
+            ErrorCode beginResult = TryBeginOperation("ExecuteRead", out openedConnection);
+            if (beginResult != ErrorCode.Success)
+            {
+                return beginResult;
+            }
+
+            try
+            {
+                ErrorCode validationResult = ValidateReadRequest(page);
+                if (validationResult != ErrorCode.Success)
+                {
+                    LogValidationFailure(validationResult, "ExecuteRead");
+                    return validationResult;
+                }
+
+                ErrorCode readResult = ReadCarrierId(page, out carrierID);
+                if (readResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return readResult;
+            }
+            finally
+            {
+                EndOperation(openedConnection);
+            }
+        }
+
+        /// <summary>
+        /// Page-based ExecuteWrite template method.
+        /// The page-aware subclass only needs to override ValidateWriteRequest and WriteCarrierId.
+        /// </summary>
+        protected ErrorCode ExecuteWrite(int page, string carrierID)
+        {
+            ThrowIfDisposed();
+
+            bool openedConnection;
+
+            ErrorCode beginResult = TryBeginOperation("ExecuteWrite", out openedConnection);
+            if (beginResult != ErrorCode.Success)
+            {
+                return beginResult;
+            }
+
+            try
+            {
+                ErrorCode validationResult = ValidateWriteRequest(page, carrierID);
+                if (validationResult != ErrorCode.Success)
+                {
+                    LogValidationFailure(validationResult, "ExecuteWrite");
+                    return validationResult;
+                }
+
+                ErrorCode writeResult = WriteCarrierId(page, carrierID);
+                if (writeResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return writeResult;
+            }
+            finally
+            {
+                EndOperation(openedConnection);
+            }
+        }
+
+        /// <summary>
+        /// Acquires the busy lock and ensures a connection is available for the operation.
+        /// </summary>
+        private ErrorCode TryBeginOperation(string operationName, out bool openedConnection)
+        {
+            openedConnection = false;
 
             ErrorCode busyResult = AcquireBusy();
             if (busyResult != ErrorCode.Success)
@@ -483,32 +559,48 @@ namespace TDKController
 
             try
             {
-                ErrorCode validationResult = validateOperation == null ? ErrorCode.Success : validateOperation();
-                if (validationResult != ErrorCode.Success)
+                if (_connector == null)
                 {
-                    LogValidationFailure(validationResult, operationName);
-                    return validationResult;
+                    _logger.WriteLog(LogKey, LogHeadType.Error, string.Format("{0}: connector is null", operationName));
+                    return ErrorCode.CarrierIdConnectFailed;
                 }
 
-                ErrorCode connectResult = ConnectReader();
-                if (connectResult != ErrorCode.Success)
+                if (!_connector.IsConnected)
                 {
-                    return connectResult;
+                    ErrorCode connectResult = ConnectReader();
+                    if (connectResult != ErrorCode.Success)
+                    {
+                        return connectResult;
+                    }
+
+                    openedConnection = true;
                 }
 
-                connected = true;
-                return operation();
+                return ErrorCode.Success;
             }
-            finally
+            catch
             {
-                if (connected)
-                {
-                    DisconnectReader();
-                }
-
                 ReleaseBusy();
+                throw;
             }
         }
+
+        /// <summary>
+        /// Releases the connection opened by this class and then releases the busy lock.
+        /// </summary>
+        private void EndOperation(bool openedConnection)
+        {
+            if (openedConnection)
+            {
+                DisconnectReader();
+            }
+
+            ReleaseBusy();
+        }
+
+        #endregion
+
+        #region Shared Utilities
 
         /// <summary>
         /// Removes null characters, carriage returns, newlines, and spaces from both ends
@@ -559,6 +651,21 @@ namespace TDKController
         }
 
         /// <summary>
+        /// Updates the cached carrier ID and raises the change event only when the value changed.
+        /// </summary>
+        protected void UpdateCarrierID(string carrierID)
+        {
+            string normalized = carrierID ?? string.Empty;
+            if (string.Equals(_carrierID, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _carrierID = normalized;
+            CarrierIDChanged?.Invoke();
+        }
+
+        /// <summary>
         /// Validates that every character in the string is a valid hexadecimal digit
         /// (0-9, A-F, a-f). Used by Hermes RFID and Omron HEX readers to verify
         /// that payloads contain only hex-encoded data.
@@ -585,6 +692,10 @@ namespace TDKController
 
             return true;
         }
+
+        #endregion
+
+        #region Lifetime And Event Handling
 
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> when the reader has already been disposed.
@@ -628,5 +739,7 @@ namespace TDKController
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("OnDataReceived: exception - {0}", ex.Message));
             }
         }
+
+        #endregion
     }
 }

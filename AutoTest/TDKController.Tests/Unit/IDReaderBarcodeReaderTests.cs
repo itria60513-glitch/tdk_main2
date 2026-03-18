@@ -27,8 +27,13 @@ namespace TDKController.Tests.Unit
                 BarcodeReaderMaxRetryCount = 8,
             };
 
-            _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
-            _connectorMock.Setup(connector => connector.Disconnect());
+            _connectorMock.SetupProperty(connector => connector.IsConnected, false);
+
+            _connectorMock.Setup(connector => connector.Connect())
+                .Callback(() => _connectorMock.Object.IsConnected = true)
+                .Returns((HRESULT)null);
+            _connectorMock.Setup(connector => connector.Disconnect())
+                .Callback(() => _connectorMock.Object.IsConnected = false);
         }
 
         [Test]
@@ -131,7 +136,11 @@ namespace TDKController.Tests.Unit
             bool disconnectCalled = false;
 
             _connectorMock.Setup(connector => connector.Disconnect())
-                .Callback(() => disconnectCalled = true);
+                .Callback(() =>
+                {
+                    _connectorMock.Object.IsConnected = false;
+                    disconnectCalled = true;
+                });
 
             _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
                 .Callback<byte[], int>((buffer, length) =>
@@ -156,6 +165,7 @@ namespace TDKController.Tests.Unit
             Assert.AreEqual(ErrorCode.CarrierIdTimeout, result);
             Assert.IsTrue(stopwatch.ElapsedMilliseconds >= _config.TimeoutMs);
             Assert.IsTrue(motorOffSent);
+            _connectorMock.Verify(connector => connector.Connect(), Times.Once);
             Assert.IsTrue(disconnectCalled);
         }
 

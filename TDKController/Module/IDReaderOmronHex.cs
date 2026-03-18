@@ -13,8 +13,8 @@ namespace TDKController
     /// Overall read flow:
     ///   1. GetCarrierID is called by the host application.
     ///   2. ExecuteRead (base class) acquires the busy lock, validates the page via
-    ///      ValidateReadRequest, connects to the reader, then invokes TryReadCarrierId.
-    ///   3. TryReadCarrierId builds a HEX-mode read command ("0100" + page mask),
+    ///      ValidateReadRequest, connects to the reader, then invokes ReadCarrierId.
+    ///   3. ReadCarrierId builds a HEX-mode read command ("0100" + page mask),
     ///      sends it to the reader, and waits for a response.
     ///   4. The response payload (after stripping the "00" status prefix) is validated
     ///      as an even-length hex string, then converted from hex bytes to an ASCII string.
@@ -30,8 +30,14 @@ namespace TDKController
     /// </summary>
     public class IDReaderOmronHex : IDReaderOmronASCII
     {
+        #region Constants
+
         // Maximum supported RFID memory page number for the Omron HEX reader.
         private const int MaxPage = 30;
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderOmronHex"/> with the given
@@ -50,6 +56,10 @@ namespace TDKController
             get { return CarrierIDReaderType.OmronHex; }
         }
 
+        #endregion
+
+        #region Read And Write Workflow
+
         /// <summary>
         /// Core read operation for the Omron HEX reader.
         /// Called by ExecuteRead after the busy lock is acquired and the connection is established.
@@ -63,7 +73,7 @@ namespace TDKController
         ///   6. Convert the hex payload to an ASCII string (each 2 hex chars = 1 ASCII byte).
         ///   7. Return the decoded carrier ID on success.
         /// </summary>
-        protected override ErrorCode TryReadCarrierId(int page, out string carrierID)
+        protected override ErrorCode ReadCarrierId(int page, out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -108,25 +118,33 @@ namespace TDKController
             return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
+        #endregion
+
+        #region Command Builders
+
         /// <summary>
-        /// Builds the Omron HEX read command.
-        /// Format: "0100" (HEX read opcode) + 8-char page bitmask + carriage return.
-        /// The "01" prefix distinguishes HEX-mode reads from ASCII-mode "0110" reads.
+        /// Builds the Omron HEX read payload.
+        /// Format: "0100" (HEX read opcode) + 8-char page bitmask.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected override string BuildReadCommand(int page)
         {
-            return string.Format("0100{0}\r", BuildPageMask(page));
+            return string.Format("0100{0}", BuildPageMask(page));
         }
 
         /// <summary>
-        /// Builds the Omron HEX write command.
-        /// Format: "0200" (HEX write opcode) + 8-char page bitmask + uppercase hex data + carriage return.
-        /// The "02" prefix distinguishes HEX-mode writes from ASCII-mode "0210" writes.
+        /// Builds the Omron HEX write payload.
+        /// Format: "0200" (HEX write opcode) + 8-char page bitmask + uppercase hex data.
+        /// OmronProtocol appends the carriage return terminator.
         /// </summary>
         protected override string BuildWriteCommand(int page, string payload)
         {
-            return string.Format("0200{0}{1}\r", BuildPageMask(page), payload.ToUpperInvariant());
+            return string.Format("0200{0}{1}", BuildPageMask(page), payload.ToUpperInvariant());
         }
+
+        #endregion
+
+        #region Validation
 
         /// <summary>
         /// Validates that the supplied page number is within the allowed range [1, 30].
@@ -161,6 +179,10 @@ namespace TDKController
 
             return ErrorCode.Success;
         }
+
+        #endregion
+
+        #region Payload Helpers
 
         /// <summary>
         /// Checks whether the payload is a valid hex string with even length.
@@ -202,5 +224,7 @@ namespace TDKController
             // Step 3: Decode the raw bytes into a readable ASCII string.
             return Encoding.ASCII.GetString(bytes);
         }
+
+        #endregion
     }
 }

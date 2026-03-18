@@ -9,10 +9,12 @@
 
 - **Language**: C# (.NET Framework 4.7.2). All comments and XML docs in **English**; specs are in Traditional Chinese.
 - **Naming**: PascalCase for classes/methods, camelCase for locals, `_camelCase` for private fields, `I`-prefix for interfaces.
+- **Config property naming**: when a module exposes its injected configuration object publicly, the property name must be `Config`. Do not use equivalent aliases such as `ReadConfig` unless the type truly owns multiple distinct configuration objects and the user has explicitly approved that distinction.
 - **Error codes**: Return `int` (not enum). Use `const int` fields. `0` = success, `1-99` = info, `100-199` = warning, negative = error (module-specific ranges: E84 `-1..-99`, LoadportActor `-100..-199`, N2Purge `-200..-299`, CarrierIDReader `-300..-399`, LightCurtain `-400..-499`).
 - **Methods**: prefer <=50 lines, <=3 nesting levels, <=4 parameters. Public/internal methods must be wrapped in try-catch with logging before rethrow.
 - **Lambda**: avoid lambda unless it is clearly the simplest readable option. Prefer named private methods, local functions, or method groups, especially for event wiring, reusable logic, multi-step flow, and code that needs clear debugging.
 - **Repeated flow**: when the same operational flow appears in more than one place, extract it into a clearly named method. Do not keep copy-pasted flow variants unless extraction would materially hurt readability or distort the domain.
+- **Region grouping**: when implementing or refactoring a multi-method C# module, base class, reader, or controller helper, add meaningful `#region` groupings for major responsibility areas such as constants, construction, public operations, validation, workflow, helpers, and event handling. Region names must be semantic and must not include task IDs or step numbers.
 - **Constructor injection**: null-check with `ArgumentNullException`, store as `private readonly`.
 - **Event dependencies**: use property with subscribe/unsubscribe pattern in setter (see `.specify/memory/constitution.md`).
 - **IDisposable module lifecycle**: modules that implement `IDisposable` and still expose public operations must use an `int _disposed` flag with `Interlocked`, provide a `ThrowIfDisposed()`-style guard on public/shared operation entry points, keep `Dispose()` idempotent, and perform cleanup directly on private fields rather than via guarded public setters.
@@ -54,6 +56,7 @@ Test naming: `MethodName_Scenario_ExpectedResult`. Target >=80% coverage for cor
 ## Project Conventions
 
 - **Governing document**: `.specify/memory/constitution.md` is authoritative. All development must comply.
+- **Implementation structure**: if a touched C# file has several distinct method groups, finish the implementation with readable `#region` organization rather than leaving the file structurally flat.
 - **Reference implementation**: `lp204.cc` (~10,260 lines C++) is the existing loadport controller being ported to C#. All hardware interaction patterns originate here.
 
 ### TDK A Protocol (TAS300 Hardware)

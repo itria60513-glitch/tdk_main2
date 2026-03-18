@@ -57,6 +57,7 @@
     <Compile Include="Unit\IDReaderHermesRFIDTests.cs" />
     <Compile Include="Unit\IDReaderOmronASCIITests.cs" />
     <Compile Include="Unit\IDReaderOmronHexTests.cs" />
+    <Compile Include="Unit\ProtocolFrameAssemblyTests.cs" />
     <Compile Include="Unit\LoadportActorTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

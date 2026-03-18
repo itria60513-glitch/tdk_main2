@@ -252,7 +252,7 @@ namespace CarrierIDReader.ManualTestGui
             this.txtTimeout.Name = "txtTimeout";
             this.txtTimeout.Size = new System.Drawing.Size(70, 20);
             this.txtTimeout.TabIndex = 0;
-            this.txtTimeout.Text = "10000";
+              this.txtTimeout.Text = "1000";
             //
             // lblRetryCount
             //

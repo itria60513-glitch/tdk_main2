@@ -29,8 +29,13 @@ namespace TDKController.Tests.Unit
                 BarcodeReaderMaxRetryCount = 2,
             };
 
-            _connectorMock.Setup(connector => connector.Connect()).Returns((HRESULT)null);
-            _connectorMock.Setup(connector => connector.Disconnect());
+            _connectorMock.SetupProperty(connector => connector.IsConnected, false);
+
+            _connectorMock.Setup(connector => connector.Connect())
+                .Callback(() => _connectorMock.Object.IsConnected = true)
+                .Returns((HRESULT)null);
+            _connectorMock.Setup(connector => connector.Disconnect())
+                .Callback(() => _connectorMock.Object.IsConnected = false);
         }
 
         [Test]
@@ -181,15 +186,64 @@ namespace TDKController.Tests.Unit
         }
 
         [Test]
-        public void GetCarrierID_WhenConnectThrows_ReturnsConnectFailed()
+        public void GetCarrierID_WhenAlreadyConnected_DoesNotCallConnectOrDisconnect()
         {
-            _connectorMock.Setup(connector => connector.Connect()).Throws(new InvalidOperationException("port busy"));
             var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+            _connectorMock.Object.IsConnected = true;
+
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    string command = Encoding.ASCII.GetString(buffer, 0, length);
+                    if (command == "MOTORON\r" || command == "LOFF\r" || command == "MOTOROFF\r")
+                    {
+                        RaiseResponse(connectorMock, "OK\r");
+                    }
+                    else if (command == "LON\r")
+                    {
+                        RaiseResponse(connectorMock, "READY001\r");
+                    }
+                })
+                .Returns((HRESULT)null);
 
             string carrierId;
             ErrorCode result = reader.GetCarrierID(1, out carrierId);
 
-            Assert.AreEqual(ErrorCode.CarrierIdConnectFailed, result);
+            Assert.AreEqual(ErrorCode.Success, result);
+            Assert.AreEqual("READY001", carrierId);
+            _connectorMock.Verify(connector => connector.Connect(), Times.Never);
+            _connectorMock.Verify(connector => connector.Disconnect(), Times.Never);
+        }
+
+        [Test]
+        public void GetCarrierID_WhenNotConnected_CallsConnectAndDisconnect()
+        {
+            var reader = new IDReaderBarcodeReader(_config, _connectorMock.Object, _loggerMock.Object);
+            Mock<IConnector> connectorMock = _connectorMock;
+
+            _connectorMock.Setup(connector => connector.Send(It.IsAny<byte[]>(), It.IsAny<int>()))
+                .Callback<byte[], int>((buffer, length) =>
+                {
+                    string command = Encoding.ASCII.GetString(buffer, 0, length);
+                    if (command == "MOTORON\r" || command == "LOFF\r" || command == "MOTOROFF\r")
+                    {
+                        RaiseResponse(connectorMock, "OK\r");
+                    }
+                    else if (command == "LON\r")
+                    {
+                        RaiseResponse(connectorMock, "READY002\r");
+                    }
+                })
+                .Returns((HRESULT)null);
+
+            string carrierId;
+            ErrorCode result = reader.GetCarrierID(1, out carrierId);
+
+            Assert.AreEqual(ErrorCode.Success, result);
+            Assert.AreEqual("READY002", carrierId);
+            _connectorMock.Verify(connector => connector.Connect(), Times.Once);
+            _connectorMock.Verify(connector => connector.Disconnect(), Times.Once);
         }
 
         private static void RaiseResponse(Mock<IConnector> connectorMock, string response)

@@ -1,33 +1,34 @@
 <!--
-Sync Impact Report — v3.8.0 → v3.9.0
+Sync Impact Report — v3.10.0 → v3.10.1
 
-Version change: 3.8.0 → 3.9.0 (MINOR: 新增重複流程抽取規則，要求真正重複的作業流程
-必須提取為具名 method，避免在模組與流程分支中維護多份等價邏輯)
+Version change: 3.10.0 → 3.10.1 (PATCH: 明確化公開組態屬性的命名規則，要求等價語意
+一律使用 Config，避免在類別間混用 ReadConfig 等別名造成閱讀負擔)
 
 Modified sections:
-- 程式碼品質: 強化程式碼重用要求，新增「重複流程抽取規則」
-- 合規檢查: 新增重複流程是否已抽成 method 的驗證要求
+- 程式碼品質: 補充公開組態屬性命名一致性規則
+- 通訊事件訂閱規則: 明確要求公開組態屬性名稱統一為 Config
 
 Added sections:
-- 重複流程抽取規則
+- None
 
 Removed sections: (none)
 
 Templates requiring updates:
-- .specify/templates/plan-template.md — ✅ updated
-- .specify/templates/spec-template.md — ✅ updated
-- .specify/templates/tasks-template.md — ✅ updated
+- .specify/templates/plan-template.md — ✅ reviewed; no change required
+- .specify/templates/spec-template.md — ✅ reviewed; no change required
+- .specify/templates/tasks-template.md — ✅ reviewed; no change required
 - .specify/templates/commands/*.md — ✅ not present
 - .github/copilot-instructions.md — ✅ updated
+- .github/prompts/speckit.implement.prompt.md — ✅ reviewed; no change required
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.9.0
+**版本**: 3.10.1
 **批准日期**: 2026-02-01
-**最後修訂**: 2026-03-12
+**最後修訂**: 2026-03-18
 
 ## 核心原則
 
@@ -36,6 +37,7 @@ Follow-up TODOs:
 所有程式碼**必須**符合以下品質標準：
 
 - **命名慣例**：類別與方法**必須**使用 PascalCase；區域變數**應該**使用 camelCase。
+- **組態屬性命名一致性**：凡公開暴露模組組態物件的屬性，名稱**必須**統一為 `Config`；**不得**在等價語意下混用 `ReadConfig` 或其他別名，除非同一類型內確實並存多份不同責任的組態，且已獲使用者明確核准。
 - **單一職責**：每個類別與方法**必須**具有單一職責，避免緊密耦合。
 - **程式碼重用**：重複邏輯**必須**提取至共用方法或類別（DRY 原則）。
 - **文件**：公開 API 與複雜邏輯**必須**包含以英文撰寫的 XML 文件註解。
@@ -85,7 +87,7 @@ Follow-up TODOs:
 - **指派時訂閱**：指派新值到屬性時，**必須**訂閱新實例上所需的事件。
 - **重新指派前取消訂閱**：指派新實例前，**必須**取消訂閱舊實例的事件。
 - **Null 安全取消訂閱**：嘗試取消訂閱前**必須**檢查 null。
-- **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性暴露於介面以供外部存取。
+- **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性 `Config` 暴露於介面以供外部存取。
 - **範例模式**：
   ```csharp
   // ================ Interface: declare Connector as settable ================
@@ -256,12 +258,22 @@ Follow-up TODOs:
 - **例外條件**：只有在抽取後會明顯降低可讀性、造成不合理的參數膨脹，或扭曲領域語意時，才**可以**保留重複；保留時**必須**在審查中說明原因。
 - **理由**：此規則用於降低修正遺漏風險，確保流程邏輯只需維護一處，並讓硬體控制與通訊生命週期更易審查與測試。
 
+#### 程式碼區塊分區規則
+
+- **適用對象**：對於包含多組方法職責的 C# 類別，特別是 module、base class、protocol reader、controller helper 與 event-driven actor，於實作或重構時**必須**加入具語意的 `#region` 分類。
+- **分區目標**：`#region` **必須**反映職責群組，例如 Constants、Construction、Public Operations、Validation、Workflow、Helpers、Response Parsing、Event Handling，而非任意依檔案順序切段。
+- **命名限制**：`#region` 名稱**必須**描述領域或責任；**不得**使用 task id、暫時性名稱、Step 編號或 speckit 任務編號作為區塊名稱。
+- **變更要求**：當功能實作已明確觸及上述類別且檔案存在多個方法群組時，提交的最終程式碼**必須**同步補上或整理 `#region`，不得將結構整理留待後續人工處理。
+- **避免過度切分**：`#region` **不得**細碎到單一極短方法一區；分區粒度**必須**服務 trace、折疊與審查，而不是製造額外噪音。
+- **理由**：硬體控制與通訊模組流程長、方法群多，明確分區能降低追蹤成本，讓維護者快速定位入口、驗證、流程與輔助邏輯。
+
 #### 可讀性要求
 
 - **函式分解**：將複雜流程拆分為具有明確職責的小函式。
 - **重複流程收斂**：若流程在多個方法間重複出現，**必須**優先收斂為共用 method，而不是僅以註解標示相似性。
 - **函式長度**：偏好方法在約 50 行以內。
 - **巢狀深度**：避免超過 3 層巢狀。
+- **區塊折疊可追蹤性**：多方法 C# 類別**必須**維持可折疊且可預期的 `#region` 結構，讓維護者能快速追到公開入口、流程骨架與輔助方法。
 
 #### 方法簽章規則
 
@@ -612,4 +624,5 @@ AutoTest/
 - 任何新增或修改 `IDisposable` 模組的變更**必須**驗證 disposed 旗標、`ThrowIfDisposed()` 入口、防止晚到事件、以及重複 Dispose 的測試是否完整。
 - 任何新增 lambda 的變更**必須**驗證其用途符合「如非必要少用 lambda」原則，並確認具名方法、local function 或方法群組不是更清楚的選項。
 - 任何新增或保留重複流程的變更**必須**驗證其是否已抽成具名 method；若未抽取，審查紀錄**必須**說明抽取後為何會更差。
+- 任何實作或重構觸及多方法 C# 模組的變更**必須**驗證是否已加入或維持具語意的 `#region` 分類，且區塊名稱不含 task id、Step 編號或 speckit 任務編號。
 - 定期審查憲章並在必要時提出修訂。

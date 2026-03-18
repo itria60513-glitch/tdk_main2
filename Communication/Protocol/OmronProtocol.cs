@@ -48,19 +48,23 @@ namespace Communication.Protocol
         #region Public Method
         public int AddOutFrameInfo(ref byte[] byteArray, int intSize)
         {
-            var len = byteArray.Length;
+            if (byteArray == null || intSize < 0 || intSize > byteArray.Length)
+                return -1;
+
             var frame = new byte[intSize + 1];
-            Buffer.BlockCopy(byteArray, 0, frame, 0, len);
-            byteArray[intSize] = 0x0D;
+            Buffer.BlockCopy(byteArray, 0, frame, 0, intSize);
+            frame[intSize] = 0x0D;
             byteArray = frame;
             return intSize + 1;
         }
         public int AddOutFrameInfoWithFakeHeader(ref byte[] byteArray, int intSize)
         {
-            var len = byteArray.Length;
+            if (byteArray == null || intSize < 0 || intSize > byteArray.Length)
+                return -1;
+
             var frame = new byte[intSize + 1];
-            Buffer.BlockCopy(byteArray, 0, frame, 0, len);
-            byteArray[intSize] = 0x0C;
+            Buffer.BlockCopy(byteArray, 0, frame, 0, intSize);
+            frame[intSize] = 0x0C;
             byteArray = frame;
             return intSize + 1;
         }
@@ -70,6 +74,7 @@ namespace Communication.Protocol
             try
             {
                 m_queue.purge();
+                last_index = 0;
             }
             finally
             {
@@ -97,10 +102,18 @@ namespace Communication.Protocol
             {
                 var queuesize = m_queue.size;
                 if (queuesize < 1)
+                {
+                    last_index = 0;
                     return 0;
+                }
+
+                if (last_index >= queuesize)
+                {
+                    last_index = 0;
+                }
 
                 int size = 0;
-                for (size = last_index; size < queuesize - 1; size++)
+                for (size = last_index; size < queuesize; size++)
                 {
                     if (m_queue.item(size) == 0x0D)
                     {
@@ -108,7 +121,7 @@ namespace Communication.Protocol
                         return m_queue.pop_array(ref byteArray, size + 1);
                     }
                 }
-                last_index = queuesize - 1;
+                last_index = queuesize;
                 return 0;
             }
             finally
@@ -118,11 +131,14 @@ namespace Communication.Protocol
         }
         public (bool, byte[]) VerifyInFrameStructure(byte[] buffer, int size)
         {
-            var len = buffer.Length;
-            
-            if (len<3 || buffer[len-1]!=0x0D)
+            if (buffer == null || size <= 0 || size > buffer.Length)
                 return (false, buffer);
-            byte[] result = new byte[buffer.Length - 1];
+
+            var len = size;
+            if (len < 3 || buffer[len - 1] != 0x0D)
+                return (false, buffer);
+
+            byte[] result = new byte[len - 1];
             Buffer.BlockCopy(buffer, 0, result, 0, result.Length);
             return (true, result);
         }

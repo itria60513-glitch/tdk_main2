@@ -1,0 +1,108 @@
+@startuml TryBeginOperationReadPage
+title CarrierIDReader ExecuteRead(page) With TryBeginOperation
+
+actor Caller
+participant "Concrete Reader\n(e.g. OmronASCII / OmronHex / HermesRFID)" as Reader
+participant CarrierIDReader as Base
+participant Connector as CommChannel
+
+Caller -> Reader: GetCarrierID(page, out carrierID)
+activate Reader
+
+Reader -> Base: ExecuteRead(page, out carrierID)
+activate Base
+Base -> Base: ThrowIfDisposed()
+Base -> Base: carrierID = string.Empty
+
+Base -> Base: TryBeginOperation("ExecuteRead", out openedConnection)
+activate Base
+Base -> Base: AcquireBusy()
+
+alt Busy lock failed
+  Base --> Reader: CarrierIdBusy
+  deactivate Base
+  Reader --> Caller: CarrierIdBusy
+  deactivate Reader
+else Busy lock acquired
+  alt Connector is null
+    Base --> Reader: CarrierIdConnectFailed
+    deactivate Base
+    Reader --> Caller: CarrierIdConnectFailed
+    deactivate Reader
+  else Connector exists
+    alt Connector is not connected
+      Base -> Base: ConnectReader()
+      Base -> CommChannel: Connect()
+      activate CommChannel
+      CommChannel --> Base: connected / failure
+      deactivate CommChannel
+
+      alt Connect failed
+        Base --> Reader: CarrierIdConnectFailed
+        deactivate Base
+        Reader --> Caller: CarrierIdConnectFailed
+        deactivate Reader
+      else Connect succeeded
+        Base -> Base: openedConnection = true
+        Base --> Base: Success
+      end
+    else Already connected
+      Base -> Base: openedConnection = false
+      Base --> Base: Success
+    end
+
+    Base -> Reader: ValidateReadRequest(page)
+    activate Reader
+    Reader --> Base: validationResult
+    deactivate Reader
+
+    alt Validation failed
+      Base -> Base: LogValidationFailure(...)
+      note right of Base
+        finally:
+        EndOperation(openedConnection)
+      end note
+      alt openedConnection == true
+        Base -> Base: DisconnectReader()
+        Base -> CommChannel: Disconnect()
+        activate CommChannel
+        CommChannel --> Base
+        deactivate CommChannel
+      end
+      Base -> Base: ReleaseBusy()
+      Base --> Reader: validationResult
+      deactivate Base
+      Reader --> Caller: validationResult
+      deactivate Reader
+    else Validation succeeded
+      Base -> Reader: ReadCarrierId(page, out carrierID)
+      activate Reader
+      note right of Reader
+        Protocol-specific read flow.
+        Reader may call Base.SendCommand(...)
+        one or more times.
+      end note
+      Reader --> Base: readResult
+      deactivate Reader
+
+      note right of Base
+        finally:
+        EndOperation(openedConnection)
+      end note
+      alt openedConnection == true
+        Base -> Base: DisconnectReader()
+        Base -> CommChannel: Disconnect()
+        activate CommChannel
+        CommChannel --> Base
+        deactivate CommChannel
+      end
+      Base -> Base: ReleaseBusy()
+      Base --> Reader: readResult
+      deactivate Base
+      Reader --> Caller: readResult + carrierID
+      deactivate Reader
+    end
+  end
+end
+
+@enduml
