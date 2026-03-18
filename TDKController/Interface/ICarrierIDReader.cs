@@ -3,6 +3,11 @@ using Communication.Interface;
 namespace TDKController
 {
     /// <summary>
+    /// Delegate for carrier ID value change notification.
+    /// </summary>
+    public delegate void CarrierIDChangedEventHandler();
+
+    /// <summary>
     /// Defines the unified contract for carrier identifier reader operations.
     /// </summary>
     public interface ICarrierIDReader
@@ -24,6 +29,17 @@ namespace TDKController
         /// in the setter so that event routing stays consistent.
         /// </summary>
         IConnector Connector { get; set; }
+
+        /// <summary>
+        /// Gets the last known carrier identifier value cached by the reader.
+        /// Empty when no successful read or write has been completed yet.
+        /// </summary>
+        string CarrierID { get; }
+
+        /// <summary>
+        /// Raised when the cached <see cref="CarrierID"/> value changes after a successful read or write.
+        /// </summary>
+        event CarrierIDChangedEventHandler CarrierIDChanged;
 
         /// <summary>
         /// Reads the carrier identifier from the specified reader page.

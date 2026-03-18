@@ -36,6 +36,7 @@ namespace TDKController
         private const string LogKey = "CarrierIDReader";
 
         private IConnector _connector;
+        private string _carrierID = string.Empty;
         // Thread-safe busy flag: 0 = idle, 1 = busy. Prevents concurrent reader access.
         private int _busyFlag;
         // Thread-safe disposed flag: 0 = active, 1 = disposed. Ensures single disposal.
@@ -80,6 +81,19 @@ namespace TDKController
         /// Written by OnDataReceived, read by SendCommand after _responseSignal is set.
         /// </summary>
         protected string LastResponse { get; set; }
+
+        /// <summary>
+        /// Gets the last known carrier identifier value cached by this reader instance.
+        /// </summary>
+        public string CarrierID
+        {
+            get { return _carrierID; }
+        }
+
+        /// <summary>
+        /// Raised when <see cref="CarrierID"/> changes after a successful read or write.
+        /// </summary>
+        public event CarrierIDChangedEventHandler CarrierIDChanged;
 
         /// <summary>Identifies the specific reader protocol (BarcodeReader, HermesRFID, OmronASCII, OmronHex).</summary>
         public abstract CarrierIDReaderType CarrierIDReaderType { get; }
@@ -436,7 +450,13 @@ namespace TDKController
                     return validationResult;
                 }
 
-                return ReadCarrierId(out carrierID);
+                ErrorCode readResult = ReadCarrierId(out carrierID);
+                if (readResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return readResult;
             }
             finally
             {
@@ -471,7 +491,13 @@ namespace TDKController
                     return validationResult;
                 }
 
-                return ReadCarrierId(page, out carrierID);
+                ErrorCode readResult = ReadCarrierId(page, out carrierID);
+                if (readResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return readResult;
             }
             finally
             {
@@ -504,7 +530,13 @@ namespace TDKController
                     return validationResult;
                 }
 
-                return WriteCarrierId(page, carrierID);
+                ErrorCode writeResult = WriteCarrierId(page, carrierID);
+                if (writeResult == ErrorCode.Success)
+                {
+                    UpdateCarrierID(carrierID);
+                }
+
+                return writeResult;
             }
             finally
             {
@@ -616,6 +648,21 @@ namespace TDKController
                 LogKey,
                 LogHeadType.Error,
                 string.Format("{0}: validation failed with {1}", operationName, validationResult));
+        }
+
+        /// <summary>
+        /// Updates the cached carrier ID and raises the change event only when the value changed.
+        /// </summary>
+        protected void UpdateCarrierID(string carrierID)
+        {
+            string normalized = carrierID ?? string.Empty;
+            if (string.Equals(_carrierID, normalized, StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _carrierID = normalized;
+            CarrierIDChanged?.Invoke();
         }
 
         /// <summary>
