@@ -176,6 +176,7 @@ namespace TDKController
         {
             try
             {
+                _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("SetCarrierID(page): write is not supported for barcode reader. page={0}", page));
                 return base.SetCarrierID(page, carrierID);
             }
             catch (Exception ex)
