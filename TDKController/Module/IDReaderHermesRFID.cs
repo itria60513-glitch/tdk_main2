@@ -45,6 +45,8 @@ namespace TDKController
     /// </summary>
     public class IDReaderHermesRFID : CarrierIDReader
     {
+        #region Constants And State
+
         // Maximum supported RFID memory page number for the Hermes reader.
         private const int MaxPage = 17;
 
@@ -54,6 +56,10 @@ namespace TDKController
         /// Reset to null at the start of each ParseCarrierIDReaderData call.
         /// </summary>
         private HermesFrame? _lastParsedFrame;
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderHermesRFID"/> with the given
@@ -71,6 +77,10 @@ namespace TDKController
         {
             get { return CarrierIDReaderType.HermesRFID; }
         }
+
+        #endregion
+
+        #region Response Parsing
 
         /// <inheritdoc />
         /// <remarks>
@@ -126,6 +136,10 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Public Operations
+
         /// <inheritdoc />
         /// <remarks>
         /// Read flow entry point:
@@ -166,6 +180,10 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Validation
+
         /// <summary>
         /// Validates that the current page number is within the allowed range [1, 17].
         /// </summary>
@@ -200,6 +218,10 @@ namespace TDKController
 
             return ErrorCode.Success;
         }
+
+        #endregion
+
+        #region Read And Write Workflow
 
         /// <summary>
         /// Core read operation for the Hermes RFID reader.
@@ -259,6 +281,10 @@ namespace TDKController
             return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
+        #endregion
+
+        #region Command Builders
+
         /// <summary>
         /// Builds the read command payload: "X0" + 2-digit zero-padded page number.
         /// HermosProtocol wraps the payload into a full Hermes frame.
@@ -276,6 +302,10 @@ namespace TDKController
         {
             return string.Format("W0{0:D2}{1}", page, carrierID.ToUpperInvariant());
         }
+
+        #endregion
+
+        #region Frame Parsing
 
         /// <summary>
         /// Parses a raw response string into a structured HermesFrame.
@@ -346,6 +376,10 @@ namespace TDKController
             return ErrorCode.Success;
         }
 
+        #endregion
+
+        #region Response Classification
+
         /// <summary>
         /// Checks whether the response message type is one of the supported Hermes responses.
         /// Supported types: 'x' (read response), 'w' (write response), 'v' (version response).
@@ -370,6 +404,10 @@ namespace TDKController
         {
             return !string.IsNullOrEmpty(message) && message[0] == 'x';
         }
+
+        #endregion
+
+        #region Checksum And Frame Types
 
         /// <summary>
         /// Computes the dual checksum used in the Hermes protocol frame.
@@ -412,5 +450,7 @@ namespace TDKController
             /// <summary>The raw message body extracted from the Hermes frame (between length prefix and CR).</summary>
             public string Message { get; }
         }
+
+        #endregion
     }
 }

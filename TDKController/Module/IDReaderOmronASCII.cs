@@ -42,8 +42,14 @@ namespace TDKController
     /// </summary>
     public class IDReaderOmronASCII : CarrierIDReader
     {
+        #region Constants
+
         // Maximum supported RFID memory page number for the Omron ASCII reader.
         private const int MaxPage = 30;
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderOmronASCII"/> with the given
@@ -61,6 +67,10 @@ namespace TDKController
         {
             get { return CarrierIDReaderType.OmronASCII; }
         }
+
+        #endregion
+
+        #region Response Parsing
 
         /// <inheritdoc />
         /// <remarks>
@@ -88,6 +98,10 @@ namespace TDKController
                 throw;
             }
         }
+
+        #endregion
+
+        #region Public Operations
 
         /// <inheritdoc />
         /// <remarks>
@@ -131,6 +145,10 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Payload Helpers
+
         /// <summary>
         /// Extracts the data payload from an Omron response by stripping the leading 2-char status prefix.
         /// For a success response "00ABCDEFGH...", this returns "ABCDEFGH...".
@@ -143,6 +161,10 @@ namespace TDKController
             // Strip the 2-char status prefix ("00" for success) to get the raw data payload.
             return normalized.Length <= 2 ? string.Empty : normalized.Substring(2);
         }
+
+        #endregion
+
+        #region Read And Write Workflow
 
         /// <summary>
         /// Core read operation for the Omron ASCII reader.
@@ -198,6 +220,10 @@ namespace TDKController
             return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
+        #endregion
+
+        #region Command Builders
+
         /// <summary>
         /// Builds the Omron ASCII read payload.
         /// Format: "0110" (ASCII read opcode) + 8-char page bitmask.
@@ -217,6 +243,10 @@ namespace TDKController
         {
             return string.Format("0210{0}{1}", BuildPageMask(page), payload);
         }
+
+        #endregion
+
+        #region Page Mask Helpers
 
         /// <summary>
         /// Maps a logical page number (1-30) to the 8-character bitmask used by Omron readers.
@@ -334,6 +364,10 @@ namespace TDKController
             return new string(frame);
         }
 
+        #endregion
+
+        #region Validation
+
         /// <summary>
         /// Validates that the supplied page number is within the allowed range [1, maxPage].
         /// Shared by both ASCII and HEX subclasses (each passes its own MaxPage constant).
@@ -390,5 +424,7 @@ namespace TDKController
 
             return ErrorCode.Success;
         }
+
+        #endregion
     }
 }

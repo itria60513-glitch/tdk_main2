@@ -43,7 +43,9 @@ unit tests are all planned explicitly. Also verify that any proposed lambda usag
 is necessary, limited in scope, and not clearer as a named method, local function,
 or method group. Also verify that any repeated operational flow is converged into
 a named method unless a documented readability or domain-specific reason prevents
-that extraction.]
+that extraction. Also verify that any touched multi-method C# module, base class,
+reader, or controller helper is planned to use meaningful #region grouping, and
+that region names remain semantic rather than task-oriented.]
 
 ## Project Structure
 

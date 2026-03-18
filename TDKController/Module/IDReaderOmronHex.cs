@@ -30,8 +30,14 @@ namespace TDKController
     /// </summary>
     public class IDReaderOmronHex : IDReaderOmronASCII
     {
+        #region Constants
+
         // Maximum supported RFID memory page number for the Omron HEX reader.
         private const int MaxPage = 30;
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderOmronHex"/> with the given
@@ -49,6 +55,10 @@ namespace TDKController
         {
             get { return CarrierIDReaderType.OmronHex; }
         }
+
+        #endregion
+
+        #region Read And Write Workflow
 
         /// <summary>
         /// Core read operation for the Omron HEX reader.
@@ -108,6 +118,10 @@ namespace TDKController
             return SendCommand(BuildWriteCommand(page, carrierID), Config.TimeoutMs, out response);
         }
 
+        #endregion
+
+        #region Command Builders
+
         /// <summary>
         /// Builds the Omron HEX read payload.
         /// Format: "0100" (HEX read opcode) + 8-char page bitmask.
@@ -127,6 +141,10 @@ namespace TDKController
         {
             return string.Format("0200{0}{1}", BuildPageMask(page), payload.ToUpperInvariant());
         }
+
+        #endregion
+
+        #region Validation
 
         /// <summary>
         /// Validates that the supplied page number is within the allowed range [1, 30].
@@ -161,6 +179,10 @@ namespace TDKController
 
             return ErrorCode.Success;
         }
+
+        #endregion
+
+        #region Payload Helpers
 
         /// <summary>
         /// Checks whether the payload is a valid hex string with even length.
@@ -202,5 +224,7 @@ namespace TDKController
             // Step 3: Decode the raw bytes into a readable ASCII string.
             return Encoding.ASCII.GetString(bytes);
         }
+
+        #endregion
     }
 }

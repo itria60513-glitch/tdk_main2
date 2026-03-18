@@ -29,6 +29,11 @@ If the feature contains repeated operational flow across methods, the task list
 MUST include explicit extraction or review work to converge that flow into a
 named shared method unless a documented exception is approved.
 
+If the feature touches multi-method C# module files, the task list MUST include
+explicit implementation or cleanup work to add or maintain meaningful #region
+grouping, and region names MUST NOT contain task IDs, step numbers, or speckit
+task labels.
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

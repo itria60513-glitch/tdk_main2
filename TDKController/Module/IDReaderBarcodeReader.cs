@@ -26,6 +26,8 @@ namespace TDKController
     /// </summary>
     public class IDReaderBarcodeReader : CarrierIDReader
     {
+        #region Constants
+
         // Command timeout values in milliseconds.
         private const int MotorOnTimeoutMs = 10000;   // MOTORON may take longer due to motor spin-up.
         private const int MotorOffTimeoutMs = 3000;    // MOTOROFF is faster since the motor is already running.
@@ -36,6 +38,10 @@ namespace TDKController
         private const string CommandMotorOff = "MOTOROFF";  // Deactivates the scanner motor.
         private const string CommandRead = "LON";           // Triggers a barcode read.
         private const string CommandStop = "LOFF";          // Cancels an in-progress read trigger.
+
+        #endregion
+
+        #region Construction And Identity
 
         /// <summary>
         /// Initializes a new instance of <see cref="IDReaderBarcodeReader"/> with the given
@@ -53,6 +59,10 @@ namespace TDKController
         {
             get { return CarrierIDReaderType.BarcodeReader; }
         }
+
+        #endregion
+
+        #region Response Parsing
 
         /// <inheritdoc />
         /// <remarks>
@@ -100,6 +110,10 @@ namespace TDKController
                 throw;
             }
         }
+
+        #endregion
+
+        #region Public Operations
 
         /// <summary>
         /// Sends the BL600 MOTORON command and waits for the OK acknowledgement.
@@ -170,6 +184,10 @@ namespace TDKController
                 throw;
             }
         }
+
+        #endregion
+
+        #region Read Workflow
 
         /// <summary>
         /// Core barcode read operation invoked by ExecuteRead after connection is established.
@@ -339,6 +357,10 @@ namespace TDKController
             return lastResult;
         }
 
+        #endregion
+
+        #region Command Helpers
+
         /// <summary>
         /// Sends the LOFF command to cancel an in-progress barcode read trigger.
         /// Called after a read timeout to ensure the hardware is in a clean state.
@@ -349,6 +371,10 @@ namespace TDKController
             string stopResponse;
             SendCommand(CommandStop, 500, out stopResponse);
         }
+
+        #endregion
+
+        #region Response Classification
 
         /// <summary>
         /// Classifies a raw barcode response into an existing operation result code.
@@ -394,6 +420,8 @@ namespace TDKController
         {
             return string.Equals(TrimResponse(response), "OK", StringComparison.OrdinalIgnoreCase);
         }
+
+        #endregion
 
     }
 }

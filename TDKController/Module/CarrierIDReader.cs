@@ -31,6 +31,8 @@ namespace TDKController
     /// </summary>
     public abstract class CarrierIDReader : ICarrierIDReader, IDisposable
     {
+        #region Constants And Fields
+
         private const string LogKey = "CarrierIDReader";
 
         private IConnector _connector;
@@ -38,6 +40,10 @@ namespace TDKController
         private int _busyFlag;
         // Thread-safe disposed flag: 0 = active, 1 = disposed. Ensures single disposal.
         private int _disposed;
+
+        #endregion
+
+        #region Construction And Core Properties
 
         /// <summary>
         /// Initializes the base carrier ID reader.
@@ -110,6 +116,10 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Protocol Contract
+
         /// <summary>
         /// Protocol-specific response parser. Called by SendCommand after a response is received.
         /// Each subclass implements its own validation logic (e.g., checking for "00" prefix,
@@ -132,6 +142,10 @@ namespace TDKController
             ThrowIfDisposed();
             return ErrorCode.CarrierIdError;
         }
+
+        #endregion
+
+        #region Disposal
 
         /// <summary>
         /// Releases all resources held by this reader instance.
@@ -186,6 +200,10 @@ namespace TDKController
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("Dispose: exception - {0}", ex.Message));
             }
         }
+
+        #endregion
+
+        #region Busy And Connection Control
 
         /// <summary>
         /// Attempts to acquire the busy lock using an atomic compare-and-swap.
@@ -332,6 +350,10 @@ namespace TDKController
             }
         }
 
+        #endregion
+
+        #region Template Methods
+
         /// <summary>
         /// Page-specific pre-read validation hook for readers that need to validate the target page.
         /// Readers without page-specific validation can use the default Success implementation.
@@ -384,6 +406,10 @@ namespace TDKController
         {
             return ErrorCode.CarrierIdError;
         }
+
+        #endregion
+
+        #region Shared Operation Flow
 
         /// <summary>
         /// Simplified ExecuteRead template method for readers without page-specific behavior.
@@ -540,6 +566,10 @@ namespace TDKController
             ReleaseBusy();
         }
 
+        #endregion
+
+        #region Shared Utilities
+
         /// <summary>
         /// Removes null characters, carriage returns, newlines, and spaces from both ends
         /// of the response string. Returns empty string if input is null or empty.
@@ -616,6 +646,10 @@ namespace TDKController
             return true;
         }
 
+        #endregion
+
+        #region Lifetime And Event Handling
+
         /// <summary>
         /// Throws <see cref="ObjectDisposedException"/> when the reader has already been disposed.
         /// Prevents use-after-dispose on public and protected operation entry points.
@@ -658,5 +692,7 @@ namespace TDKController
                 _logger.WriteLog(LogKey, LogHeadType.Exception, string.Format("OnDataReceived: exception - {0}", ex.Message));
             }
         }
+
+        #endregion
     }
 }
