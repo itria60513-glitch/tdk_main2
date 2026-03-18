@@ -127,6 +127,7 @@ namespace Communication.Protocol
             try
             {
                 m_queue.purge();
+                last_index = 0;
             }
             finally
             {
@@ -154,10 +155,18 @@ namespace Communication.Protocol
             {
                 var queuesize = m_queue.size;
                 if (queuesize < 1)
+                {
+                    last_index = 0;
                     return 0;
+                }
+
+                if (last_index >= queuesize)
+                {
+                    last_index = 0;
+                }
 
                 int size = 0;
-                for (size = last_index; size < queuesize - 1; size++)
+                for (size = last_index; size < queuesize; size++)
                 {
                     if (m_queue.item(size) == 0x0D)
                     {
@@ -165,7 +174,7 @@ namespace Communication.Protocol
                         return m_queue.pop_array(ref byteArray, size + 1);
                     }
                 }
-                last_index = queuesize - 1;
+                last_index = queuesize;
                 return 0;
             }
             finally

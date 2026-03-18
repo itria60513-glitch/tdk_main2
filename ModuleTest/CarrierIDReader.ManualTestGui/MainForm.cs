@@ -148,7 +148,8 @@ namespace CarrierIDReader.ManualTestGui
             try
             {
                 IProtocol protocol = CreateProtocol(cboReaderType.SelectedIndex);
-                _connector = new SimpleRs232Connector(protocol, comPort, baudRate, parity, dataBits, stopBits);
+                _connector = new SimpleRs232Connector(protocol, comPort, baudRate, parity, dataBits, stopBits, WriteStatus);
+                _connector.Connect();
 
                 CarrierIDReaderConfig readerConfig = new CarrierIDReaderConfig
                 {
@@ -160,7 +161,7 @@ namespace CarrierIDReader.ManualTestGui
 
                 lblConnState.Text = "Reader Created";
                 lblConnState.ForeColor = Color.Green;
-                WriteStatus(string.Format("Reader created: {0}, Port={1}, Baud={2}, Parity={3}, DataBits={4}, StopBits={5}",
+                WriteStatus(string.Format("Reader created and port opened: {0}, Port={1}, Baud={2}, Parity={3}, DataBits={4}, StopBits={5}",
                     cboReaderType.SelectedItem, comPort, baudRate, cboParity.SelectedItem, dataBits, stopBits));
             }
             catch (Exception ex)
