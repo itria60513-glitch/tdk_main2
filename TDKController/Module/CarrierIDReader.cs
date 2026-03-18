@@ -63,7 +63,7 @@ namespace TDKController
         }
 
         /// <summary>Reader configuration (timeout, retry count, and other shared settings).</summary>
-        protected CarrierIDReaderConfig Config { get; }
+        public CarrierIDReaderConfig Config { get; }
 
         /// <summary>Logger instance for writing diagnostic and error messages.</summary>
         protected readonly ILogUtility _logger;

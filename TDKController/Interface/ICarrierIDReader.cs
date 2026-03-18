@@ -8,6 +8,11 @@ namespace TDKController
     public interface ICarrierIDReader
     {
         /// <summary>
+        /// Gets the shared carrier ID reader configuration.
+        /// </summary>
+        CarrierIDReaderConfig Config { get; }
+
+        /// <summary>
         /// Gets the active carrier ID reader type.
         /// </summary>
         CarrierIDReaderType CarrierIDReaderType { get; }

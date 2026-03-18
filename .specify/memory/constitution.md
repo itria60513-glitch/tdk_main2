@@ -1,33 +1,32 @@
 <!--
-Sync Impact Report — v3.9.0 → v3.10.0
+Sync Impact Report — v3.10.0 → v3.10.1
 
-Version change: 3.9.0 → 3.10.0 (MINOR: 新增實作期間的 #region 分類規則，要求多職責 C#
-模組在實作或重構時以語意化區塊分組，提升 trace 與折疊可讀性)
+Version change: 3.10.0 → 3.10.1 (PATCH: 明確化公開組態屬性的命名規則，要求等價語意
+一律使用 Config，避免在類別間混用 ReadConfig 等別名造成閱讀負擔)
 
 Modified sections:
-- 程式碼品質: 新增實作階段的 #region 分類要求
-- 可讀性要求: 新增區塊分組與命名限制
-- 合規檢查: 新增 #region 分類合規驗證要求
+- 程式碼品質: 補充公開組態屬性命名一致性規則
+- 通訊事件訂閱規則: 明確要求公開組態屬性名稱統一為 Config
 
 Added sections:
-- 程式碼區塊分區規則
+- None
 
 Removed sections: (none)
 
 Templates requiring updates:
-- .specify/templates/plan-template.md — ✅ updated
+- .specify/templates/plan-template.md — ✅ reviewed; no change required
 - .specify/templates/spec-template.md — ✅ reviewed; no change required
-- .specify/templates/tasks-template.md — ✅ updated
+- .specify/templates/tasks-template.md — ✅ reviewed; no change required
 - .specify/templates/commands/*.md — ✅ not present
 - .github/copilot-instructions.md — ✅ updated
-- .github/prompts/speckit.implement.prompt.md — ✅ updated
+- .github/prompts/speckit.implement.prompt.md — ✅ reviewed; no change required
 
 Follow-up TODOs:
 - None
 -->
 # TDKService 專案憲章
 
-**版本**: 3.10.0
+**版本**: 3.10.1
 **批准日期**: 2026-02-01
 **最後修訂**: 2026-03-18
 
@@ -38,6 +37,7 @@ Follow-up TODOs:
 所有程式碼**必須**符合以下品質標準：
 
 - **命名慣例**：類別與方法**必須**使用 PascalCase；區域變數**應該**使用 camelCase。
+- **組態屬性命名一致性**：凡公開暴露模組組態物件的屬性，名稱**必須**統一為 `Config`；**不得**在等價語意下混用 `ReadConfig` 或其他別名，除非同一類型內確實並存多份不同責任的組態，且已獲使用者明確核准。
 - **單一職責**：每個類別與方法**必須**具有單一職責，避免緊密耦合。
 - **程式碼重用**：重複邏輯**必須**提取至共用方法或類別（DRY 原則）。
 - **文件**：公開 API 與複雜邏輯**必須**包含以英文撰寫的 XML 文件註解。
@@ -87,7 +87,7 @@ Follow-up TODOs:
 - **指派時訂閱**：指派新值到屬性時，**必須**訂閱新實例上所需的事件。
 - **重新指派前取消訂閱**：指派新實例前，**必須**取消訂閱舊實例的事件。
 - **Null 安全取消訂閱**：嘗試取消訂閱前**必須**檢查 null。
-- **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性暴露於介面以供外部存取。
+- **組態參數作為公開屬性**：當模組需要組態參數時，組態物件透過建構函式注入，並以公開屬性 `Config` 暴露於介面以供外部存取。
 - **範例模式**：
   ```csharp
   // ================ Interface: declare Connector as settable ================

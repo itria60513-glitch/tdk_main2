@@ -9,6 +9,7 @@
 
 - **Language**: C# (.NET Framework 4.7.2). All comments and XML docs in **English**; specs are in Traditional Chinese.
 - **Naming**: PascalCase for classes/methods, camelCase for locals, `_camelCase` for private fields, `I`-prefix for interfaces.
+- **Config property naming**: when a module exposes its injected configuration object publicly, the property name must be `Config`. Do not use equivalent aliases such as `ReadConfig` unless the type truly owns multiple distinct configuration objects and the user has explicitly approved that distinction.
 - **Error codes**: Return `int` (not enum). Use `const int` fields. `0` = success, `1-99` = info, `100-199` = warning, negative = error (module-specific ranges: E84 `-1..-99`, LoadportActor `-100..-199`, N2Purge `-200..-299`, CarrierIDReader `-300..-399`, LightCurtain `-400..-499`).
 - **Methods**: prefer <=50 lines, <=3 nesting levels, <=4 parameters. Public/internal methods must be wrapped in try-catch with logging before rethrow.
 - **Lambda**: avoid lambda unless it is clearly the simplest readable option. Prefer named private methods, local functions, or method groups, especially for event wiring, reusable logic, multi-step flow, and code that needs clear debugging.
