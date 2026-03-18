@@ -37,7 +37,7 @@ namespace TDKController
     ///
     /// Overall write flow (SetCarrierID):
     ///   1. SetCarrierID delegates to ExecuteWrite (base class).
-    ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWritePayload
+    ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWriteRequest
     ///      (page [1..17], payload must be exactly 16 hex characters), connects, then invokes WriteCarrierId.
     ///   3. WriteCarrierId builds a write command ("W0" + 2-digit page + uppercase hex data),
     ///      wraps it in a Hermes frame, and sends it.
@@ -89,7 +89,7 @@ namespace TDKController
         ///   4. Cache the parsed frame in _lastParsedFrame for downstream use by ReadCarrierId.
         ///   5. Return Success if all checks pass, or CarrierIdCommandFailed / CarrierIdChecksumError.
         /// </remarks>
-        public override ErrorCode ParseCarrierIDReaderData(string command)
+        protected override ErrorCode ParseCarrierIDReaderData(string command)
         {
             try
             {
@@ -149,15 +149,15 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Write flow entry point:
-        ///   1. Delegates to ExecuteWrite with ValidateWritePayload and WriteCarrierId.
-        ///   2. ValidateWritePayload checks page [1..17] and that the carrier ID is a 16-char hex string.
+        ///   1. Delegates to the page-based ExecuteWrite template method.
+        ///   2. The base class calls ValidateWriteRequest and WriteCarrierId.
         ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
         /// </remarks>
         public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                return ExecuteWrite(page, carrierID, ValidateWritePayload, WriteCarrierId);
+                return ExecuteWrite(page, carrierID);
             }
             catch (Exception ex)
             {
@@ -183,7 +183,7 @@ namespace TDKController
         ///   1. Ensure the supplied page is within [1, 17].
         ///   2. Ensure the carrier ID is exactly 16 hex characters (representing 8 bytes of RFID data).
         /// </summary>
-        private ErrorCode ValidateWritePayload(int page, string carrierID)
+        protected override ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
             // Step 1: Validate the page number range.
             ErrorCode pageResult = ValidateReadRequest(page);
@@ -252,7 +252,7 @@ namespace TDKController
         ///   2. Send the command and wait for a response (parsed by ParseCarrierIDReaderData
         ///      which validates the 'w' response frame and checksums).
         /// </summary>
-        private ErrorCode WriteCarrierId(int page, string carrierID)
+        protected override ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the Hermes write command frame.
@@ -389,7 +389,7 @@ namespace TDKController
             {
                 // Accumulate XOR of all character code points.
                 xorValue ^= value[index];
-                // Accumulate sum of all character code points, masked to 8 bits.
+                // Accumulate sum of all character code points, masked to 8 bits (modulo 256).
                 addValue = (addValue + value[index]) & 0xFF;
             }
 

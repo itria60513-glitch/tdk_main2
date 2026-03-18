@@ -72,7 +72,7 @@ namespace TDKController
         ///      - "00" prefix: return Success (payload follows after the prefix).
         ///      - Other prefix: return CarrierIdCommandFailed (error code from reader).
         /// </remarks>
-        public override ErrorCode ParseCarrierIDReaderData(string command)
+        protected override ErrorCode ParseCarrierIDReaderData(string command)
         {
             try
             {
@@ -112,16 +112,17 @@ namespace TDKController
         /// <inheritdoc />
         /// <remarks>
         /// Write flow entry point:
-        ///   1. Delegates to ExecuteWrite with ValidateWriteRequest and WriteCarrierId.
-        ///   2. ValidateWriteRequest checks page [1..30] and that the carrier ID is a
-        ///      16-char printable ASCII string.
-        ///   3. ExecuteWrite handles busy lock, validation, connection, and cleanup.
+        ///   1. SetCarrierID delegates to ExecuteWrite (base class).
+        ///   2. ExecuteWrite acquires busy lock, validates page and payload via ValidateWriteRequest
+        ///      (page [1..30], payload must be 16 printable ASCII chars), connects, invokes WriteCarrierId.
+        ///   3. WriteCarrierId builds the ASCII write command and sends it.
+        ///   4. ExecuteWrite disconnects and releases the busy lock.
         /// </remarks>
         public override ErrorCode SetCarrierID(int page, string carrierID)
         {
             try
             {
-                return ExecuteWrite(page, carrierID, ValidateWriteRequest, WriteCarrierId);
+                return ExecuteWrite(page, carrierID);
             }
             catch (Exception ex)
             {
@@ -190,7 +191,7 @@ namespace TDKController
         ///   2. Send the command and wait for a response (validated by ParseCarrierIDReaderData
         ///      which checks for the "00" success prefix).
         /// </summary>
-        protected virtual ErrorCode WriteCarrierId(int page, string carrierID)
+        protected override ErrorCode WriteCarrierId(int page, string carrierID)
         {
             string response;
             // Build and send the ASCII-mode write command.
@@ -359,7 +360,7 @@ namespace TDKController
         /// Virtual to allow OmronHex to override with hex-specific validation.
         /// Called by ExecuteWrite before the connection is established.
         /// </summary>
-        protected virtual ErrorCode ValidateWriteRequest(int page, string carrierID)
+        protected override ErrorCode ValidateWriteRequest(int page, string carrierID)
         {
             return ValidateAsciiWrite(page, carrierID);
         }

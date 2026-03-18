@@ -11,11 +11,12 @@ namespace TDKController
     ///
     /// Overall read flow (GetCarrierID):
     ///   1. GetCarrierID delegates to ExecuteRead (base class), which acquires the busy lock,
-    ///      connects to the reader, then invokes PerformBarcodeRead.
-    ///   2. PerformBarcodeRead sends MOTORON to activate the scanner motor and waits for "OK".
+    ///      connects to the reader, then invokes ReadCarrierId.
+    ///   2. ReadCarrierId sends MOTORON to activate the scanner motor and waits for "OK".
     ///   3. TryReadCarrierId sends the LON (read trigger) command up to BarcodeReaderMaxRetryCount times:
     ///      a. Each attempt sends LON and waits for a barcode string or status response.
-    ///      b. The response is classified: printable ASCII = Success, "NG" = Retry, "ERROR" = Fail.
+    ///      b. The response is classified to existing error codes: printable ASCII = Success,
+    ///         "NG" = CarrierIdReadFailed, "ERROR" = CarrierIdCommandFailed.
     ///      c. On timeout, LOFF is sent to cancel the trigger, and the read aborts.
     ///   4. After reading (success or failure), MOTOROFF is sent to deactivate the motor.
     ///   5. ExecuteRead disconnects from the reader and releases the busy lock.
@@ -25,22 +26,6 @@ namespace TDKController
     /// </summary>
     public class IDReaderBarcodeReader : CarrierIDReader
     {
-        /// <summary>
-        /// Classification of a raw barcode response from the BL600 reader.
-        /// Used by ClassifyReadState to determine the next action in the retry loop.
-        /// </summary>
-        private enum BarcodeReadState
-        {
-            /// <summary>Response is empty, null, or "OK" (no barcode data).</summary>
-            Invalid = 0,
-            /// <summary>Response contains a valid printable ASCII barcode string.</summary>
-            Success = 1,
-            /// <summary>Response is "NG" — barcode unreadable, retry is allowed.</summary>
-            Retry = 2,
-            /// <summary>Response is "ERROR" — hardware error, abort immediately.</summary>
-            Fail = 3,
-        }
-
         // Command timeout values in milliseconds.
         private const int MotorOnTimeoutMs = 10000;   // MOTORON may take longer due to motor spin-up.
         private const int MotorOffTimeoutMs = 3000;    // MOTOROFF is faster since the motor is already running.
@@ -76,12 +61,12 @@ namespace TDKController
         /// Classification logic:
         ///   1. Trim the response and check for empty — return CarrierIdCommandFailed.
         ///   2. "OK" or "NG" — valid acknowledgements, return Success (further classification
-        ///      is handled by ClassifyReadState during the read loop).
+        ///      is handled by ClassifyReadState during the read loop using existing error codes).
         ///   3. "ERROR" — hardware error response, return CarrierIdCommandFailed.
         ///   4. Any other printable ASCII string — treated as valid barcode data, return Success.
         ///   5. Non-printable data — return CarrierIdCommandFailed.
         /// </remarks>
-        public override ErrorCode ParseCarrierIDReaderData(string command)
+        protected override ErrorCode ParseCarrierIDReaderData(string command)
         {
             try
             {
@@ -163,7 +148,7 @@ namespace TDKController
         {
             try
             {
-                return ExecuteRead(PerformBarcodeRead, out carrierID);
+                return ExecuteRead(out carrierID);
             }
             catch (Exception ex)
             {
@@ -196,7 +181,7 @@ namespace TDKController
         ///   4. If MOTOROFF fails but the read succeeded, return CarrierIdMotorOffFailed.
         ///      If both read and MOTOROFF failed, return the original read error (more relevant).
         /// </summary>
-        private ErrorCode PerformBarcodeRead(out string carrierID)
+        protected override ErrorCode ReadCarrierId(out string carrierID)
         {
             carrierID = string.Empty;
 
@@ -293,7 +278,7 @@ namespace TDKController
 
         /// <summary>
         /// Retry loop that attempts to read a barcode up to Config.BarcodeReaderMaxRetryCount times.
-        /// Called by PerformBarcodeRead after MOTORON succeeds.
+        /// Called by ReadCarrierId after MOTORON succeeds.
         /// Relies on ReadRawBarcode to encapsulate the LON send/wait flow and timeout cleanup.
         ///
         /// Flow (for each attempt):
@@ -302,9 +287,8 @@ namespace TDKController
         ///   3. If other error: abort immediately.
         ///   4. Classify the response using ClassifyReadState:
         ///      - Success: valid barcode found — trim and return it.
-        ///      - Retry: "NG" response — barcode unreadable, try again on next iteration.
-        ///      - Fail: "ERROR" response — hardware error, abort immediately.
-        ///      - Invalid: unexpected state, abort.
+        ///      - CarrierIdReadFailed: "NG" response — barcode unreadable, try again on next iteration.
+        ///      - CarrierIdCommandFailed: invalid or "ERROR" response — abort immediately.
         ///   5. If all retries exhausted: return CarrierIdReadFailed.
         /// </summary>
         private ErrorCode TryReadCarrierId(out string carrierID)
@@ -332,15 +316,15 @@ namespace TDKController
                 }
 
                 // Step 4: Classify the barcode response to determine the next action.
-                BarcodeReadState state = ClassifyReadState(barcode);
-                if (state == BarcodeReadState.Success)
+                ErrorCode state = ClassifyReadState(barcode);
+                if (state == ErrorCode.Success)
                 {
                     // Valid barcode data received — return the trimmed carrier ID.
                     carrierID = TrimResponse(barcode);
                     return ErrorCode.Success;
                 }
 
-                if (state == BarcodeReadState.Retry)
+                if (state == ErrorCode.CarrierIdReadFailed)
                 {
                     // "NG" — barcode was unreadable on this attempt, continue to next retry.
                     _logger.WriteLog("CarrierIDReader", LogHeadType.Error, string.Format("GetCarrierID: unreadable barcode on attempt {0}", attempt + 1));
@@ -348,14 +332,7 @@ namespace TDKController
                     continue;
                 }
 
-                if (state == BarcodeReadState.Fail)
-                {
-                    // "ERROR" — hardware error, no point in retrying.
-                    return ErrorCode.CarrierIdCommandFailed;
-                }
-
-                // Invalid/unexpected response — abort.
-                return ErrorCode.CarrierIdCommandFailed;
+                return state;
             }
 
             // Step 5: All retries exhausted without a successful read.
@@ -374,40 +351,40 @@ namespace TDKController
         }
 
         /// <summary>
-        /// Classifies a raw barcode response string into a BarcodeReadState enumeration.
+        /// Classifies a raw barcode response into an existing operation result code.
         /// Used by TryReadCarrierId to decide whether to accept, retry, or abort.
         ///
         /// Classification rules:
-        ///   - Empty / null / "OK": Invalid (no barcode data present).
-        ///   - "NG": Retry (barcode unreadable but hardware is functioning).
-        ///   - "ERROR": Fail (hardware-level error).
+        ///   - Empty / null / "OK": CarrierIdCommandFailed (no barcode data present).
+        ///   - "NG": CarrierIdReadFailed (barcode unreadable but retryable).
+        ///   - "ERROR": CarrierIdCommandFailed (hardware-level error).
         ///   - Printable ASCII text: Success (valid barcode data).
-        ///   - Non-printable data: Invalid.
+        ///   - Non-printable data: CarrierIdCommandFailed.
         /// </summary>
-        private static BarcodeReadState ClassifyReadState(string response)
+        private static ErrorCode ClassifyReadState(string response)
         {
             string normalized = TrimResponse(response);
 
             // Empty response or bare "OK" (motor ack without barcode data) — invalid.
             if (string.IsNullOrEmpty(normalized) || string.Equals(normalized, "OK", StringComparison.OrdinalIgnoreCase))
             {
-                return BarcodeReadState.Invalid;
+                return ErrorCode.CarrierIdCommandFailed;
             }
 
             // "NG" — barcode not readable on this attempt, eligible for retry.
             if (string.Equals(normalized, "NG", StringComparison.OrdinalIgnoreCase))
             {
-                return BarcodeReadState.Retry;
+                return ErrorCode.CarrierIdReadFailed;
             }
 
             // "ERROR" — hardware failure, no retry possible.
             if (string.Equals(normalized, "ERROR", StringComparison.OrdinalIgnoreCase))
             {
-                return BarcodeReadState.Fail;
+                return ErrorCode.CarrierIdCommandFailed;
             }
 
             // Any printable ASCII string is treated as successful barcode data.
-            return IsPrintableAscii(normalized) ? BarcodeReadState.Success : BarcodeReadState.Invalid;
+            return IsPrintableAscii(normalized) ? ErrorCode.Success : ErrorCode.CarrierIdCommandFailed;
         }
 
         /// <summary>

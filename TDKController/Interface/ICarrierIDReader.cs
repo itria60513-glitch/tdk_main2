@@ -21,13 +21,6 @@ namespace TDKController
         IConnector Connector { get; set; }
 
         /// <summary>
-        /// Parses raw device response data and updates reader state.
-        /// </summary>
-        /// <param name="command">Raw device response payload.</param>
-        /// <returns>The parsing result.</returns>
-        ErrorCode ParseCarrierIDReaderData(string command);
-
-        /// <summary>
         /// Reads the carrier identifier from the specified reader page.
         /// </summary>
         /// <param name="page">The reader page number to read. Barcode readers ignore this value.</param>
